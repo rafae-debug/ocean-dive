@@ -653,11 +653,20 @@
         if (currentDepth > maxDepth) currentDepth = maxDepth;
 
         cameraRig.setAttribute('position', `0 ${7-currentDepth} 0`);
-        // Show ocean surface above water, hide it after submerging
+        // Gradually fade the ocean surface as the diver sinks
         const waterSurface = document.getElementById('water-surface');
 
         if (waterSurface) {
-          waterSurface.setAttribute('visible', currentDepth < 3);
+          const fadeStart = 2.5;
+          const fadeEnd = 10;
+
+          const fade = Math.min(
+            Math.max((currentDepth - fadeStart) / (fadeEnd - fadeStart), 0),
+            1
+          );
+
+          waterSurface.setAttribute('visible', fade < 1);
+          waterSurface.setAttribute('material', 'opacity', 0.72 * (1 - fade));
         }
         depthDisplay.textContent = currentDepth.toFixed(1);
 
@@ -700,6 +709,7 @@
       currentDepth = 0;
       cameraRig.setAttribute('position', '0 7 0');
       document.getElementById('water-surface').setAttribute('visible', true);
+      document.getElementById('water-surface').setAttribute('material', 'opacity', 0.72);
       
       depthDisplay.textContent = '0.0';
       startScreen.classList.remove('hidden');
