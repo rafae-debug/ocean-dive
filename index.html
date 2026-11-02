@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,8 +102,8 @@
     <a-assets timeout="3000">
       <!-- ⚠️ WARNING: If these paths are active but the files are missing, it causes a Script Error! -->
       <!-- To use your custom models, uncomment these lines when the files exist in your folder -->
-      <!-- <a-asset-item id="custom-whale-model" src="models/whale.glb"></a-asset-item> -->
-      <!-- <a-asset-item id="custom-fish-model" src="models/fish.glb"></a-asset-item> -->
+      <!-- <a-asset-item id="custom-whale-model" src="whale.glb"></a-asset-item> -->
+      <!-- <a-asset-item id="custom-fish-model" src="fish.glb"></a-asset-item> -->
     </a-assets>
 
     <!-- Environment Lighting -->
@@ -192,170 +193,241 @@
     const flashlight = document.getElementById('flashlight');
     const colossalEntity = document.getElementById('colossal-entity');
 
-    // --- Web Audio Engine ---
-    let audioCtx = null;
-    let ambientGain = null;
-    let bassOsc = null;
-    let bassGain = null;
-    let masterGain = null;
-    let breatheGain = null;
+    // --- IMMERSIVE UNDERWATER AUDIO ENGINE ---
+    // Put optional audio recordings in /audio beside index.html.
+    // Everything still works if these recordings are absent: synthesized fallbacks are used.
+    let audioCtx = null, masterGain = null, ambientGain = null, bassGain = null, bassOsc = null;
+    let breatheGain = null, breathNoise = null, breathFilter = null;
+    let audioBuffers = {}, animalVoices = new Set();
+    let nextBreathAt = 0, nextBeatAt = 0, nextAnimalCheckAt = 0;
+    let activeAmbient = null, activeBreathing = null;
+    const soundPaths = {
+      ocean: 'audio/ocean.mp3',
+      scuba: 'audio/scuba.mp3',
+      heartbeat: 'audio/heartbeat.mp3',
+      fish: 'audio/fish.mp3',
+      ray: 'audio/ray.mp3',
+      dolphin: 'audio/dolphin.mp3',
+      whale: 'audio/whale.mp3',
+      leviathan: 'audio/leviathan.mp3'
+    };
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const rand = (a,b) => a + Math.random()*(b-a);
 
+    function makeNoise(seconds = 2) {
+      const length = Math.floor(audioCtx.sampleRate * seconds);
+      const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      let pink = 0;
+      for (let i=0; i<length; i++) {
+        pink = pink*0.985 + (Math.random()*2-1)*0.015;
+        data[i] = pink*3.5;
+      }
+      return buffer;
+    }
+    function loopBuffer(buffer, destination, volume = 1) {
+      const source = audioCtx.createBufferSource();
+      const gain = audioCtx.createGain();
+      source.buffer = buffer; source.loop = true;
+      gain.gain.value = volume;
+      source.connect(gain).connect(destination);
+      source.start();
+      return {source, gain};
+    }
+    async function loadAudio(name, url) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return;
+        const data = await response.arrayBuffer();
+        audioBuffers[name] = await audioCtx.decodeAudioData(data);
+        if (name === 'ocean' && !activeAmbient) {
+          activeAmbient = loopBuffer(audioBuffers.ocean, ambientGain, 0.45);
+        }
+        if (name === 'scuba' && !activeBreathing) {
+          activeBreathing = loopBuffer(audioBuffers.scuba, masterGain, 0.24);
+        }
+      } catch (_) { /* Recording optional; keep procedural sound. */ }
+    }
     function initAudio() {
       if (audioCtx) return;
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
-
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(isMuted ? 0 : 1, audioCtx.currentTime);
+        masterGain.gain.value = isMuted ? 0 : 0.85;
         masterGain.connect(audioCtx.destination);
 
-        // Ambient Drone (Pink Noise)
-        const bufferSize = audioCtx.sampleRate * 2;
-        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
-          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.08;
-          b6 = white * 0.115926;
-        }
-
-        const whiteNoise = audioCtx.createBufferSource();
-        whiteNoise.buffer = noiseBuffer;
-        whiteNoise.loop = true;
-
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(400, audioCtx.currentTime);
-
+        // Underwater current: filtered continuous low-frequency pink noise.
         ambientGain = audioCtx.createGain();
-        ambientGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        ambientGain.gain.value = 0.17;
+        const underwaterLowpass = audioCtx.createBiquadFilter();
+        underwaterLowpass.type = 'lowpass'; underwaterLowpass.frequency.value = 450;
+        underwaterLowpass.connect(ambientGain).connect(masterGain);
+        loopBuffer(makeNoise(4), underwaterLowpass, 0.8);
 
-        // Breathing Scuba Setup
-        breatheGain = audioCtx.createGain();
-        breatheGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-        const breatheFilter = audioCtx.createBiquadFilter();
-        breatheFilter.type = 'bandpass';
-        breatheFilter.frequency.setValueAtTime(800, audioCtx.currentTime);
-        breatheFilter.Q.setValueAtTime(1.2, audioCtx.currentTime);
+        // Oppressive sub-bass rises as depth increases.
+        bassOsc = audioCtx.createOscillator(); bassOsc.type = 'sine';
+        bassOsc.frequency.value = 46;
+        bassGain = audioCtx.createGain(); bassGain.gain.value = 0.015;
+        bassOsc.connect(bassGain).connect(masterGain); bassOsc.start();
 
-        whiteNoise.connect(filter);
-        filter.connect(ambientGain);
-        ambientGain.connect(masterGain);
+        // A scuba-like air hiss, gated into inhale/exhale envelopes.
+        breathFilter = audioCtx.createBiquadFilter();
+        breathFilter.type = 'bandpass'; breathFilter.frequency.value = 670;
+        breathFilter.Q.value = 0.6;
+        breatheGain = audioCtx.createGain(); breatheGain.gain.value = 0.0001;
+        breathFilter.connect(breatheGain).connect(masterGain);
+        breathNoise = loopBuffer(makeNoise(3), breathFilter, 1.0);
 
-        whiteNoise.connect(breatheFilter);
-        breatheFilter.connect(breatheGain);
-        breatheGain.connect(masterGain);
-
-        whiteNoise.start();
-
-        // Sub-Bass Drone Synth
-        bassOsc = audioCtx.createOscillator();
-        bassGain = audioCtx.createGain();
-        bassOsc.type = 'sine';
-        bassOsc.frequency.setValueAtTime(50, audioCtx.currentTime);
-        bassGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
-        bassOsc.connect(bassGain);
-        bassGain.connect(masterGain);
-        bassOsc.start();
-
-        scheduleHeartbeat();
-        scheduleBreathing();
-      } catch (e) {
-        console.warn("Audio Context init error:", e);
+        // Optional real sound files are loaded asynchronously and never block the dive.
+        for (const [name, path] of Object.entries(soundPaths)) loadAudio(name, path);
+        nextBreathAt = audioCtx.currentTime + 0.3;
+        nextBeatAt = audioCtx.currentTime + 0.8;
+      } catch (e) { console.warn('Audio unavailable', e); }
+    }
+    function makeTone(frequency, endFrequency, duration, gainValue, destination, type='sine', at=null) {
+      if (!audioCtx) return;
+      const t = at ?? audioCtx.currentTime;
+      const osc = audioCtx.createOscillator(), env = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(Math.max(15,frequency),t);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(15,endFrequency),t+duration);
+      env.gain.setValueAtTime(0.0001,t);
+      env.gain.exponentialRampToValueAtTime(Math.max(0.0002,gainValue),t+Math.min(.12,duration*.22));
+      env.gain.exponentialRampToValueAtTime(0.0001,t+duration);
+      osc.connect(env).connect(destination);
+      osc.start(t); osc.stop(t+duration+.02);
+    }
+    function makeHeartbeat() {
+      if (!audioCtx || !isDiving) return;
+      const t = audioCtx.currentTime;
+      const depthRatio = currentDepth/maxDepth;
+      const volume = 0.08 + depthRatio*0.29;
+      // lub-dub, rather than a single repeating electronic beep.
+      makeTone(70,34,.16,volume,masterGain,'sine',t);
+      makeTone(55,29,.20,volume*.72,masterGain,'sine',t+.21);
+      if (audioBuffers.heartbeat) {
+        // Optional recorded heartbeat; short one-shot on the same accelerating cadence.
+        const src = audioCtx.createBufferSource(), g=audioCtx.createGain();
+        src.buffer=audioBuffers.heartbeat; g.gain.value=.14+depthRatio*.18;
+        src.connect(g).connect(masterGain); src.start(t);
+        src.stop(t+Math.min(.65,src.buffer.duration));
       }
     }
-
-    function scheduleBreathing() {
-      if (!isDiving || isMuted || !audioCtx) {
-        setTimeout(scheduleBreathing, 1000);
-        return;
-      }
-      
-      let rate = 1 + (currentDepth / maxDepth) * 2.0; // Breathe faster as depth increases
-      let breathDur = 4500 / rate;
-      
-      // Audio Envelope for Exhale
-      const now = audioCtx.currentTime;
-      breatheGain.gain.cancelScheduledValues(now);
-      breatheGain.gain.setValueAtTime(0.001, now);
-      breatheGain.gain.linearRampToValueAtTime(0.18, now + (breathDur/1000) * 0.3);
-      breatheGain.gain.linearRampToValueAtTime(0.001, now + (breathDur/1000) * 0.9);
-
-      // Visual Bubbles Sync
-      let bubbleCount = 3 + Math.floor(Math.random() * 4);
-      for(let i=0; i < bubbleCount; i++) {
-        setTimeout(spawnPlayerBubble, i * 150);
-      }
-
-      setTimeout(scheduleBreathing, breathDur);
+    function makeBreath() {
+      if (!audioCtx || !isDiving || !breatheGain) return;
+      const t=audioCtx.currentTime, depthRatio=currentDepth/maxDepth;
+      const cycle=clamp(4.5-depthRatio*2.5,1.8,4.5);
+      // Real scuba recording is a background layer; hiss/bubbles stay rhythmically responsive.
+      breatheGain.gain.cancelScheduledValues(t);
+      breatheGain.gain.setValueAtTime(.0001,t);
+      breatheGain.gain.linearRampToValueAtTime(.11+depthRatio*.16,t+cycle*.20);
+      breatheGain.gain.linearRampToValueAtTime(.0001,t+cycle*.48);
+      breatheGain.gain.linearRampToValueAtTime(.16+depthRatio*.15,t+cycle*.67);
+      breatheGain.gain.linearRampToValueAtTime(.0001,t+cycle*.94);
+      for (let i=0;i<5;i++) setTimeout(spawnPlayerBubble, i*115);
+      return cycle;
     }
-
     function spawnPlayerBubble() {
       if (!isDiving) return;
       const container = document.getElementById('player-bubbles');
       if (!container) return;
-
-      const bubble = document.createElement('a-sphere');
-      const startX = (Math.random() - 0.5) * 0.2;
-      const startZ = -0.3 + (Math.random() - 0.5) * 0.1;
-      
-      bubble.setAttribute('position', `${startX} -0.3 ${startZ}`);
-      bubble.setAttribute('radius', `${0.015 + Math.random() * 0.02}`);
-      bubble.setAttribute('color', '#ffffff');
-      bubble.setAttribute('material', 'transparent: true; opacity: 0.5; shader: flat');
-      
-      bubble.setAttribute('animation', `property: position; to: ${startX * 2} 2.5 ${startZ * 1.5}; dur: ${2000 + Math.random()*1000}; easing: easeInSine`);
-      
+      const bubble=document.createElement('a-sphere');
+      const x=(Math.random()-.5)*.2, z=-.3+(Math.random()-.5)*.1;
+      bubble.setAttribute('position',`${x} -0.3 ${z}`);
+      bubble.setAttribute('radius',`${.015+Math.random()*.02}`);
+      bubble.setAttribute('color','#ffffff');
+      bubble.setAttribute('material','transparent: true; opacity: 0.5; shader: flat');
+      bubble.setAttribute('animation',`property: position; to: ${x*2} 2.5 ${z*1.5}; dur: 2300; easing: easeInSine`);
       container.appendChild(bubble);
-      setTimeout(() => {
-          if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-      }, 3000);
+      setTimeout(()=>bubble.remove(),2700);
     }
-
-    function playHeartbeatSound() {
-      if (!audioCtx || !isDiving || isMuted) return;
-      try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        
-        const freq = 45 + (currentDepth / maxDepth) * 45; // Thumps get higher pitched
-        const vol = 0.08 + (currentDepth / maxDepth) * 0.45; // Get significantly louder
-
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + 0.16);
-
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-
-        osc.connect(gain);
-        gain.connect(masterGain);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
-      } catch (e) {}
-    }
-
-    function scheduleHeartbeat() {
-      playHeartbeatSound();
-      const factor = Math.min(currentDepth / maxDepth, 1);
-      const nextDelay = 1300 - (factor * 950); // Beats much faster under pressure
-      setTimeout(scheduleHeartbeat, nextDelay);
-    }
-
-    // Removing static random bubbles to favor player breathing mechanics
     function updateAudioParams(depth) {
-      if (!audioCtx || !ambientGain || !bassGain) return;
-      const ratio = Math.min(depth / maxDepth, 1);
-      bassGain.gain.setTargetAtTime(0.02 + ratio * 0.5, audioCtx.currentTime, 0.4);
-      bassOsc.frequency.setTargetAtTime(50 - ratio * 22, audioCtx.currentTime, 0.4);
+      if (!audioCtx || !bassGain) return;
+      const r=clamp(depth/maxDepth,0,1), t=audioCtx.currentTime;
+      bassGain.gain.setTargetAtTime(.015+r*.22,t,.5);
+      bassOsc.frequency.setTargetAtTime(46-r*22,t,.5);
+      ambientGain.gain.setTargetAtTime(.17+r*.20,t,.5);
+      if (activeAmbient) activeAmbient.gain.gain.setTargetAtTime(.35+r*.25,t,.5);
+      if (activeBreathing) activeBreathing.gain.gain.setTargetAtTime(.18+r*.16,t,.5);
+      // Audio scheduling uses the AudioContext clock, not multiple competing timeouts.
+      if (isDiving && t >= nextBreathAt) nextBreathAt=t+makeBreath();
+      if (isDiving && t >= nextBeatAt) {
+        makeHeartbeat(); nextBeatAt=t+clamp(1.25-r*.78,.47,1.25);
+      }
+    }
+    // Each animal gets a positional 3D sound. The volume attenuates with distance;
+    // its stereo location follows the actual model as it swims.
+    const animalSettings = {
+      1:{name:'fish', base:.12, maxDistance:25, interval:8},
+      2:{name:'ray', base:.20, maxDistance:55, interval:9},
+      3:{name:'dolphin', base:.45, maxDistance:95, interval:6},
+      4:{name:'whale', base:.65, maxDistance:180, interval:12},
+      5:{name:'leviathan', base:.9, maxDistance:220, interval:9}
+    };
+    function playAnimalCall(voice) {
+      if (!audioCtx || !isDiving || !voice.creature.isConnected) return;
+      const {name,base}=voice.settings;
+      const destination=voice.panner;
+      const t=audioCtx.currentTime;
+      if (audioBuffers[name]) {
+        const src=audioCtx.createBufferSource(), g=audioCtx.createGain();
+        src.buffer=audioBuffers[name];
+        g.gain.value=base;
+        src.connect(g).connect(destination);
+        src.start();
+        src.stop(t+Math.min(src.buffer.duration,6));
+      } else if (name==='fish') {
+        for(let i=0;i<3;i++) makeTone(rand(650,1050),rand(250,500),.08,.09,destination,'triangle',t+i*.13);
+      } else if (name==='ray') {
+        makeTone(160,65,1.1,.18,destination,'sine',t);
+      } else if (name==='dolphin') {
+        for(let i=0;i<4;i++) makeTone(rand(900,1700),rand(2000,3200),.18,.19,destination,'sine',t+i*.24);
+      } else if (name==='whale') {
+        makeTone(110,43,3.8,.35,destination,'sine',t);
+        makeTone(185,68,3.2,.10,destination,'sine',t+.35);
+      } else {
+        makeTone(48,21,5.5,.65,destination,'sawtooth',t);
+        makeTone(29,17,5.2,.4,destination,'sine',t+.4);
+      }
+    }
+    function attachAnimalSound(creature,tier) {
+      if (!audioCtx) return;
+      const settings=animalSettings[tier];
+      const panner=audioCtx.createPanner();
+      panner.panningModel='HRTF'; panner.distanceModel='inverse';
+      panner.refDistance=8; panner.maxDistance=settings.maxDistance;
+      panner.rolloffFactor=2.2;
+      panner.connect(masterGain);
+      const voice={creature,panner,settings,nextCall:audioCtx.currentTime+rand(.5,2.5)};
+      animalVoices.add(voice);
+      creature.addEventListener('remove',()=>{animalVoices.delete(voice); panner.disconnect();},{once:true});
+    }
+    function updateSpatialAudio() {
+      if (!audioCtx || !cameraEl || !cameraEl.object3D) return;
+      const THREE=AFRAME.THREE, v=new THREE.Vector3(), forward=new THREE.Vector3(), up=new THREE.Vector3();
+      cameraEl.object3D.getWorldPosition(v);
+      const listener=audioCtx.listener;
+      if (listener.positionX) {
+        listener.positionX.value=v.x; listener.positionY.value=v.y; listener.positionZ.value=v.z;
+        cameraEl.object3D.getWorldDirection(forward);
+        up.set(0,1,0).applyQuaternion(cameraEl.object3D.getWorldQuaternion(new THREE.Quaternion()));
+        listener.forwardX.value=forward.x; listener.forwardY.value=forward.y; listener.forwardZ.value=forward.z;
+        listener.upX.value=up.x; listener.upY.value=up.y; listener.upZ.value=up.z;
+      }
+      const t=audioCtx.currentTime;
+      for (const voice of [...animalVoices]) {
+        if (!voice.creature.isConnected) {animalVoices.delete(voice);voice.panner.disconnect();continue;}
+        voice.creature.object3D.getWorldPosition(v);
+        if (voice.panner.positionX) {
+          voice.panner.positionX.value=v.x;
+          voice.panner.positionY.value=v.y;
+          voice.panner.positionZ.value=v.z;
+        } else voice.panner.setPosition(v.x,v.y,v.z);
+        if (isDiving && t>=voice.nextCall) {
+          playAnimalCall(voice);
+          voice.nextCall=t+voice.settings.interval*rand(.75,1.45);
+        }
+      }
     }
 
     // --- Procedural Scene Content Setup ---
@@ -417,7 +489,7 @@
         const t = (depth - 50) / 100;
         skyColor = interpolateColor('#004f77', '#000c14', t);
         fogColor = skyColor;
-        fogDensity = 0.013 + t * 0.012; // Reduced fog for better visibility
+        fogDensity = 0.013 + t * 0.012;
         sunIntensity = 0.72 * (1 - t);
         zoneName = "Phase 2: Mesopelagic (Twilight Zone)";
         flashlight.setAttribute('light', 'intensity', t * 0.8);
@@ -426,7 +498,7 @@
         const t = (depth - 150) / 150;
         skyColor = interpolateColor('#000c14', '#000204', t);
         fogColor = skyColor;
-        fogDensity = 0.025 + t * 0.015; // Reduced fog for better visibility
+        fogDensity = 0.025 + t * 0.015;
         sunIntensity = 0;
         zoneName = "Phase 3: Bathypelagic (Midnight Abyss)";
         flashlight.setAttribute('light', 'intensity', 0.8 + t * 0.7);
@@ -435,7 +507,7 @@
         const t = Math.min((depth - 300) / 180, 1);
         skyColor = '#000204';
         fogColor = '#000204';
-        fogDensity = 0.040 + t * 0.020; // Reduced fog for better visibility
+        fogDensity = 0.040 + t * 0.020;
         sunIntensity = 0;
         zoneName = "Phase 4: Hadal Trench (The Deep Void)";
         flashlight.setAttribute('light', 'intensity', 1.5 + t * 0.5);
@@ -458,7 +530,7 @@
       const rigPos = cameraRig.getAttribute('position');
       
       // Safely calculate player's current looking direction using A-Frame attributes
-      const camRot = cameraEl.getAttribute('rotation'); // returns {x, y, z} in degrees
+      const camRot = cameraEl.getAttribute('rotation');
       const lookAngle = camRot ? (camRot.y * (Math.PI / 180)) : 0; 
       
       // ADJUSTED PROBABILITIES: Fewer giants, more small fish to reduce crowding
@@ -494,18 +566,18 @@
       const fogFactor = Math.min(currentDepth / 300, 1);
       let dist;
       if (tier === 1) {
-        dist = 5 + (Math.random() * 5); // Herring swarms (5-10m) - Very Close
+        dist = 5 + (Math.random() * 5); // Herring swarms (5-10m)
       } else if (tier === 2) {
         dist = 15 + (Math.random() * 10); // Rays (15-25m)
       } else if (tier === 3) {
         dist = 30 + (Math.random() * 15); // Dolphins (30-45m)
       } else if (tier === 4) {
-        dist = 50 + (Math.random() * 20); // Whales (50-70m) - Far
+        dist = 50 + (Math.random() * 20); // Whales (50-70m)
       } else {
-        dist = 70 + (Math.random() * 30); // Leviathans (70-100m) - Very Far
+        dist = 70 + (Math.random() * 30); // Leviathans (70-100m)
       }
       
-      // Slightly pull them in if fog is thick, but max 25% closer so they don't get too near
+      // Slightly pull them in if fog is thick
       if (tier > 1) {
         dist = dist - (fogFactor * (dist * 0.25)); 
       }
@@ -513,7 +585,7 @@
       const spawnX = Math.sin(offsetAngle) * dist;
       const spawnZ = Math.cos(offsetAngle) * dist;
       
-      // Ensure they always spawn underwater (below rigPos.y)
+      // Ensure they always spawn underwater
       const spawnY = rigPos.y - 2 - (Math.random() * 15); 
 
       creature.setAttribute('position', `${spawnX} ${spawnY} ${spawnZ}`);
@@ -531,44 +603,44 @@
       let animDuration = 40000;
 
       if (tier === 1) {
-        // Size 1: Herring Swarm (Custom Models) - Slowed down movement because model contains swarm animation
+        // Size 1: Herring Swarm
         creature.innerHTML = `
           <a-gltf-model src="school_of_herring.glb" scale="5 5 5" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
-        animDuration = 90000; // Extremely slow forward trajectory so the circle swarm looks natural
+        animDuration = 90000;
       } else if (tier === 2) {
-        // Size 2: Medium (Rays / Turtles)
+        // Size 2: Rays
         creature.innerHTML = `
           <a-gltf-model src="ray.glb" scale="0.3 0.3 0.3" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
         animDuration = 30000;
       } else if (tier === 3) {
-        // Size 3: Large (Dolphins / Sharks)
+        // Size 3: Dolphins
         creature.innerHTML = `
           <a-gltf-model src="dolphin.glb" scale="45 45 45" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
-        animDuration = 20000; // Fast moving
+        animDuration = 20000;
       } else if (tier === 4) {
-        // Size 4: Giant (Whales)
-        // Direct model loading - scaled and animated!
+        // Size 4: Giant Whales
         creature.innerHTML = `
-            <a-gltf-model src="whale.glb" scale="3 3 3" rotation="0 180 0" animation-mixer="clip: *; timeScale: 0.8"></a-gltf-model>
+          <a-gltf-model src="whale.glb" scale="3 3 3" rotation="0 180 0" animation-mixer="clip: *; timeScale: 0.8"></a-gltf-model>
         `;
-        animDuration = 45000; // Slow, massive movement
+        animDuration = 45000;
       } else if (tier === 5) {
-        // Size 5: Colossal Leviathan (Deep Abyss)
+        // Size 5: Colossal Leviathan
         creature.innerHTML = `
           <a-gltf-model src="blue_whale.glb" scale="5 5 5" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
-        animDuration = 60000; // Extremely slow, ominous
+        animDuration = 60000;
       }
 
       creature.setAttribute('animation', `property: position; to: ${swimTargetX} ${spawnY} ${swimTargetZ}; dur: ${animDuration}; easing: linear`);
       
       container.appendChild(creature);
+      attachAnimalSound(creature, tier);
 
       setTimeout(() => {
-          if(creature.parentNode) creature.parentNode.removeChild(creature);
+        if(creature.parentNode) creature.parentNode.removeChild(creature);
       }, animDuration + 1000);
     }
 
@@ -581,10 +653,9 @@
       const deltaTime = (timestamp - lastTimestamp) / 1000;
       lastTimestamp = timestamp;
 
-      // Slower spawning intervals so the ocean doesn't feel artificially crowded
       const spawnInterval = isDiving 
         ? Math.max(4000, 8000 - (currentDepth / maxDepth) * 4000)
-        : 5000; // Spawn every 5 seconds while waiting at the surface
+        : 5000;
         
       if (timestamp - spawnTimer > spawnInterval) {
         spawnCreepyCreature();
@@ -608,6 +679,7 @@
         }
       }
 
+      updateSpatialAudio();
       requestAnimationFrame(animateDescent);
     }
 
@@ -618,7 +690,7 @@
         audioCtx.resume();
       }
       isDiving = true;
-      cameraRig.removeAttribute('animation'); // Stop surface bobbing
+      cameraRig.removeAttribute('animation');
       startScreen.classList.add('hidden');
       statusDisplay.textContent = "Sinking Uncontrollably...";
     });
@@ -628,13 +700,14 @@
       soundState.textContent = isMuted ? "OFF" : "ON";
       soundState.className = isMuted ? "text-red-400" : "text-emerald-400";
       if (masterGain && audioCtx) {
-        masterGain.gain.setValueAtTime(isMuted ? 0 : 1, audioCtx.currentTime);
+        masterGain.gain.setValueAtTime(isMuted ? 0 : 0.85, audioCtx.currentTime);
       }
     });
 
     recenterBtn.addEventListener('click', () => {
       isDiving = false;
       currentDepth = 0;
+      if (audioCtx) { nextBreathAt=audioCtx.currentTime+.4; nextBeatAt=audioCtx.currentTime+.7; }
       cameraRig.setAttribute('position', '0 0 0');
       cameraRig.setAttribute('animation', 'property: position; dir: alternate; dur: 2500; to: 0 0.8 0; loop: true; easing: easeInOutSine');
       depthDisplay.textContent = '0.0';
@@ -643,8 +716,8 @@
       updateEnvironmentStage(0);
       
       if (audioCtx) {
-        if (ambientGain) ambientGain.gain.setTargetAtTime(0.25, audioCtx.currentTime, 0.1);
-        if (bassGain) bassGain.gain.setTargetAtTime(0.01, audioCtx.currentTime, 0.1);
+        if (ambientGain) ambientGain.gain.setTargetAtTime(0.17, audioCtx.currentTime, 0.1);
+        if (bassGain) bassGain.gain.setTargetAtTime(0.015, audioCtx.currentTime, 0.1);
       }
       
       const container = document.getElementById('dynamic-creatures');
