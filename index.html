@@ -569,8 +569,13 @@
       const spawnX = Math.sin(offsetAngle) * dist;
       const spawnZ = Math.cos(offsetAngle) * dist;
       
-      // Ensure they always spawn underwater (below rigPos.y)
+      // Keep all creatures below the ocean surface (y = 4)
+      const waterLevel = 4;
       const spawnY = rigPos.y - 2 - (Math.random() * 15); 
+      // Leave extra room so large models don't break the surface
+      const surfaceClearance = tier === 1 ? 8 : tier === 2 ? 12 : 25;
+
+      const spawnY = Math.min(underwaterY, waterLevel - surfaceClearance);
 
       creature.setAttribute('position', `${spawnX} ${spawnY} ${spawnZ}`);
       
