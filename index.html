@@ -533,32 +533,32 @@
       if (tier === 1) {
         // Size 1: Herring Swarm (Custom Models) - Slowed down movement because model contains swarm animation
         creature.innerHTML = `
-          <a-gltf-model src="models/school_of_herring.glb" scale="5 5 5" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
+          <a-gltf-model src="school_of_herring.glb" scale="5 5 5" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
         animDuration = 90000; // Extremely slow forward trajectory so the circle swarm looks natural
       } else if (tier === 2) {
         // Size 2: Medium (Rays / Turtles)
         creature.innerHTML = `
-          <a-gltf-model src="models/ray.glb" scale="0.3 0.3 0.3" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
+          <a-gltf-model src="ray.glb" scale="0.3 0.3 0.3" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
         animDuration = 30000;
       } else if (tier === 3) {
         // Size 3: Large (Dolphins / Sharks)
         creature.innerHTML = `
-          <a-gltf-model src="models/dolphin.glb" scale="45 45 45" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
+          <a-gltf-model src="dolphin.glb" scale="45 45 45" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
         animDuration = 20000; // Fast moving
       } else if (tier === 4) {
         // Size 4: Giant (Whales)
         // Direct model loading - scaled and animated!
         creature.innerHTML = `
-            <a-gltf-model src="models/whale.glb" scale="3 3 3" rotation="0 180 0" animation-mixer="clip: *; timeScale: 0.8"></a-gltf-model>
+            <a-gltf-model src="whale.glb" scale="3 3 3" rotation="0 180 0" animation-mixer="clip: *; timeScale: 0.8"></a-gltf-model>
         `;
         animDuration = 45000; // Slow, massive movement
       } else if (tier === 5) {
         // Size 5: Colossal Leviathan (Deep Abyss)
         creature.innerHTML = `
-          <a-gltf-model src="models/blue_whale.glb" scale="5 5 5" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
+          <a-gltf-model src="blue_whale.glb" scale="5 5 5" animation-mixer="clip: *; timeScale: 1.0"></a-gltf-model>
         `;
         animDuration = 60000; // Extremely slow, ominous
       }
