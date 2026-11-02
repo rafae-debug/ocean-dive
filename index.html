@@ -643,15 +643,18 @@
       const deltaTime = (timestamp - lastTimestamp) / 1000;
       lastTimestamp = timestamp;
 
-      // Slower spawning intervals so the ocean doesn't feel artificially crowded
-      const spawnInterval = isDiving 
-        ? Math.max(4000, 8000 - (currentDepth / maxDepth) * 4000)
-        : 5000; // Spawn every 5 seconds while waiting at the surface
-        
-      if (timestamp - spawnTimer > spawnInterval) {
+      const spawnInterval = Math.max(
+        4000,
+        8000 - (currentDepth / maxDepth) * 4000
+      );
+
+      // Only spawn creatures once the player has entered the ocean
+      if (isDiving && currentDepth >= 3 &&
+          timestamp - spawnTimer > spawnInterval) {
         spawnCreepyCreature();
         spawnTimer = timestamp;
       }
+      
 
       if (isDiving && currentDepth < maxDepth) {
         currentDepth += descentSpeed * deltaTime;
@@ -712,6 +715,7 @@
     recenterBtn.addEventListener('click', () => {
       isDiving = false;
       currentDepth = 0;
+      spawnTimer = performance.now();
       cameraRig.setAttribute('position', '0 7 0');
       document.getElementById('water-surface').setAttribute('visible', true);
       document.getElementById('water-surface').setAttribute('material', 'opacity', 0.72);
