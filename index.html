@@ -95,7 +95,7 @@
   </div>
 
   <!-- A-Frame VR Scene -->
-  <a-scene embedded renderer="antialias: true; colorManagement: true; alpha: false;" fog="type: exponential; color: #88ccff; density: 0.012">
+  <a-scene embedded renderer="antialias: true; colorManagement: true; alpha: false;" fog="type: exponential; color: #88ccff; density: 0.005">
     
     <!-- ASSET MANAGER FOR CUSTOM 3D MODELS -->
     <a-assets timeout="3000">
@@ -446,7 +446,7 @@
 
       if (depth < 50) {
         // Phase 1: Epipelagic
-        const t = depth / 50;
+        const t = Math.min(Math.max((depth - 5) / 45, 0), 1);
         skyColor = interpolateColor('#88ccff', '#004f77', t);
         fogColor = skyColor;
         fogDensity = 0.005 + t * 0.008; // Reduced fog for better visibility
@@ -491,7 +491,7 @@
       const sun = document.getElementById('surface-sun');
 
       if (sun) {
-        const fade = Math.min(depth / 35, 1);
+        const fade = Math.min(Math.max((depth - 5) / 30, 0), 1);
 
         const sunColor = interpolateColor(
           '#ffcc00',  // Golden yellow at the surface
