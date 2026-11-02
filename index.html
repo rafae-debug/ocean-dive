@@ -121,7 +121,7 @@
     </a-sphere>
 
     <!-- CAMERA RIG (Starts bobbing at surface) -->
-    <a-entity id="rig" position="0 0 0" animation="property: position; dir: alternate; dur: 2500; to: 0 0.8 0; loop: true; easing: easeInOutSine">
+    <a-entity id="rig" position="0 0 0">
       <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false" near="0.1">
         
         <!-- Spotlight Headlamp -->
@@ -141,7 +141,7 @@
       id="water-surface"
       geometry="primitive: plane; width: 1000; height: 1000; segmentsWidth: 120; segmentsHeight: 120"
       rotation="-90 0 0"
-      position="0 1.5 0"
+      position="0 4 0"
       material="color: #80cde8; transparent: true; opacity: 0.8; side: double; roughness: 0.25; metalness: 0.1">
     </a-entity>
 
@@ -435,7 +435,7 @@
           Math.sin(y * 0.11 + t * 0.5) * 0.3 +
           Math.sin((x + y) * 0.06 + t) * 0.2;
 
-        positions.setZ(i, wave);
+        positions.setZ(i, wave * 0.35);
       }
 
       positions.needsUpdate = true;
@@ -693,7 +693,7 @@
       isDiving = false;
       currentDepth = 0;
       cameraRig.setAttribute('position', '0 0 0');
-      cameraRig.setAttribute('animation', 'property: position; dir: alternate; dur: 2500; to: 0 0.8 0; loop: true; easing: easeInOutSine');
+      
       depthDisplay.textContent = '0.0';
       startScreen.classList.remove('hidden');
       statusDisplay.textContent = "Surface Ready";
