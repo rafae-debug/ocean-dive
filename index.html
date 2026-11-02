@@ -288,7 +288,7 @@
     }
 
     function scheduleBreathing() {
-      if (!isDiving || isMuted || !audioCtx) {
+      if (!isDiving || currentDepth < 3 || isMuted || !audioCtx) {
         setTimeout(scheduleBreathing, 1000);
         return;
       }
@@ -313,7 +313,7 @@
     }
 
     function spawnPlayerBubble() {
-      if (!isDiving) return;
+      if (!isDiving || currentDepth < 3) return;
       const container = document.getElementById('player-bubbles');
       if (!container) return;
 
