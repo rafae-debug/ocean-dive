@@ -112,6 +112,43 @@
     <!-- Sky dome (Visible at surface) -->
     <a-sky id="ocean-sky" color="#88ccff"></a-sky>
 
+    <!-- SUN ABOVE THE OCEAN -->
+    <a-sphere
+      id="surface-sun"
+      position="0 95 -220"
+      radius="24"
+      material="shader: flat; color: #fff8d8; fog: false">
+    </a-sphere>
+
+    <!-- SOFT GLOW AROUND SUN -->
+    <a-sphere
+      id="sun-glow"
+      position="0 95 -221"
+      radius="40"
+      material="shader: flat; color: #fff4c0; transparent: true; opacity: 0.12; depthWrite: false; fog: false">
+    </a-sphere>
+
+    <!-- SUNLIGHT FILTERING INTO WATER -->
+    <a-entity id="sun-rays" position="0 0 0">
+      <a-cone
+        position="-15 -30 -50"
+        rotation="0 0 -12"
+        radius-bottom="24"
+        radius-top="2"
+        height="85"
+        material="shader: flat; color: #d8f5ff; transparent: true; opacity: 0.065; side: double; depthWrite: false">
+      </a-cone>
+
+      <a-cone
+        position="15 -35 -65"
+        rotation="0 0 10"
+        radius-bottom="30"
+        radius-top="3"
+        height="100"
+        material="shader: flat; color: #d8f5ff; transparent: true; opacity: 0.045; side: double; depthWrite: false">
+      </a-cone>
+    </a-entity>
+
     <!-- CAMERA RIG (Starts bobbing at surface) -->
     <a-entity id="rig" position="0 0 0" animation="property: position; dir: alternate; dur: 2500; to: 0 0.8 0; loop: true; easing: easeInOutSine">
       <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false" near="0.1">
@@ -128,8 +165,15 @@
       <a-entity id="particle-container"></a-entity>
     </a-entity>
 
-    <!-- SURFACE PLANE (Visible looking up) -->
-    <a-plane id="water-surface" position="0 1.5 0" rotation="90 0 0" scale="600 600 1" color="#aaddff" opacity="0.6" material="transparent: true; shader: flat; side: double"></a-plane>
+    <!-- SHIMMERING OCEAN SURFACE -->
+    <a-plane
+      id="water-surface"
+      position="0 1.5 0"
+      rotation="-90 0 0"
+      width="1000"
+      height="1000"
+      material="shader: flat; color: #78c9ed; transparent: true; opacity: 0.48; side: double; depthWrite: false">
+    </a-plane>
 
     <!-- DYNAMIC CREATURES CONTAINER -->
     <a-entity id="dynamic-creatures"></a-entity>
@@ -445,7 +489,34 @@
       sceneEl.setAttribute('fog', `type: exponential; color: ${fogColor}; density: ${fogDensity}`);
       sunlight.setAttribute('light', 'intensity', sunIntensity);
       ambientLight.setAttribute('light', 'intensity', Math.max(0.9 - (depth / maxDepth) * 0.85, 0.04));
-      
+
+      // Sunlight fades as the diver descends
+      const sun = document.getElementById('surface-sun');
+      const glow = document.getElementById('sun-glow');
+      const rays = document.getElementById('sun-rays');
+
+      const sunlightVisibility = Math.max(0, 1 - depth / 85);
+
+      if (sun) {
+        sun.setAttribute('visible', depth < 35);
+      }
+
+      if (glow) {
+        glow.setAttribute('visible', depth < 35);
+      }
+
+      if (rays) {
+        rays.object3D.visible = depth < 85;
+
+        rays.querySelectorAll('a-cone').forEach((ray, index) => {
+          const originalOpacity = index === 0 ? 0.065 : 0.045;
+          ray.setAttribute(
+            'material',
+            'opacity',
+            originalOpacity * sunlightVisibility
+          );
+        });
+      }
       zoneDisplay.textContent = zoneName;
     }
 
