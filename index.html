@@ -112,42 +112,13 @@
     <!-- Sky dome (Visible at surface) -->
     <a-sky id="ocean-sky" color="#88ccff"></a-sky>
 
-    <!-- SUN ABOVE THE OCEAN -->
+    <!-- SUN ABOVE THE WATER -->
     <a-sphere
       id="surface-sun"
       position="0 95 -220"
       radius="24"
       material="shader: flat; color: #fff8d8; fog: false">
     </a-sphere>
-
-    <!-- SOFT GLOW AROUND SUN -->
-    <a-sphere
-      id="sun-glow"
-      position="0 95 -221"
-      radius="40"
-      material="shader: flat; color: #fff4c0; transparent: true; opacity: 0.12; depthWrite: false; fog: false">
-    </a-sphere>
-
-    <!-- SUNLIGHT FILTERING INTO WATER -->
-    <a-entity id="sun-rays" position="0 0 0">
-      <a-cone
-        position="-15 -30 -50"
-        rotation="0 0 -12"
-        radius-bottom="24"
-        radius-top="2"
-        height="85"
-        material="shader: flat; color: #d8f5ff; transparent: true; opacity: 0.065; side: double; depthWrite: false">
-      </a-cone>
-
-      <a-cone
-        position="15 -35 -65"
-        rotation="0 0 10"
-        radius-bottom="30"
-        radius-top="3"
-        height="100"
-        material="shader: flat; color: #d8f5ff; transparent: true; opacity: 0.045; side: double; depthWrite: false">
-      </a-cone>
-    </a-entity>
 
     <!-- CAMERA RIG (Starts bobbing at surface) -->
     <a-entity id="rig" position="0 0 0" animation="property: position; dir: alternate; dur: 2500; to: 0 0.8 0; loop: true; easing: easeInOutSine">
@@ -165,15 +136,14 @@
       <a-entity id="particle-container"></a-entity>
     </a-entity>
 
-    <!-- SHIMMERING OCEAN SURFACE -->
-    <a-plane
+    <!-- MOVING OCEAN SURFACE -->
+    <a-entity
       id="water-surface"
-      position="0 1.5 0"
+      geometry="primitive: plane; width: 1000; height: 1000; segmentsWidth: 120; segmentsHeight: 120"
       rotation="-90 0 0"
-      width="1000"
-      height="1000"
-      material="shader: flat; color: #78c9ed; transparent: true; opacity: 0.48; side: double; depthWrite: false">
-    </a-plane>
+      position="0 1.5 0"
+      material="color: #80cde8; transparent: true; opacity: 0.8; side: double; roughness: 0.25; metalness: 0.1">
+    </a-entity>
 
     <!-- DYNAMIC CREATURES CONTAINER -->
     <a-entity id="dynamic-creatures"></a-entity>
@@ -444,6 +414,33 @@
       return rgbToHex(r, g, b);
     }
 
+    // Animate ocean waves at the surface
+    function animateWaterSurface(time) {
+      const surface = document.getElementById('water-surface');
+      if (!surface) return;
+
+      const mesh = surface.getObject3D('mesh');
+      if (!mesh) return;
+
+      const geometry = mesh.geometry;
+      const positions = geometry.attributes.position;
+      const t = time * 0.001;
+
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+
+        const wave =
+          Math.sin(x * 0.08 + t * 0.7) * 0.45 +
+          Math.sin(y * 0.11 + t * 0.5) * 0.3 +
+          Math.sin((x + y) * 0.06 + t) * 0.2;
+
+        positions.setZ(i, wave);
+      }
+
+      positions.needsUpdate = true;
+      geometry.computeVertexNormals();
+    }
     function updateEnvironmentStage(depth) {
       let skyColor, fogDensity, sunIntensity, zoneName, fogColor;
 
@@ -490,32 +487,11 @@
       sunlight.setAttribute('light', 'intensity', sunIntensity);
       ambientLight.setAttribute('light', 'intensity', Math.max(0.9 - (depth / maxDepth) * 0.85, 0.04));
 
-      // Sunlight fades as the diver descends
+      // Hide the sun once the diver sinks deeper
       const sun = document.getElementById('surface-sun');
-      const glow = document.getElementById('sun-glow');
-      const rays = document.getElementById('sun-rays');
-
-      const sunlightVisibility = Math.max(0, 1 - depth / 85);
 
       if (sun) {
         sun.setAttribute('visible', depth < 35);
-      }
-
-      if (glow) {
-        glow.setAttribute('visible', depth < 35);
-      }
-
-      if (rays) {
-        rays.object3D.visible = depth < 85;
-
-        rays.querySelectorAll('a-cone').forEach((ray, index) => {
-          const originalOpacity = index === 0 ? 0.065 : 0.045;
-          ray.setAttribute(
-            'material',
-            'opacity',
-            originalOpacity * sunlightVisibility
-          );
-        });
       }
       zoneDisplay.textContent = zoneName;
     }
@@ -648,6 +624,7 @@
     let spawnTimer = 0;
 
     function animateDescent(timestamp) {
+      animateWaterSurface(timestamp);
       if (!lastTimestamp) lastTimestamp = timestamp;
       const deltaTime = (timestamp - lastTimestamp) / 1000;
       lastTimestamp = timestamp;
