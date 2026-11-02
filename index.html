@@ -117,7 +117,7 @@
       id="surface-sun"
       position="0 95 -220"
       radius="24"
-      material="shader: flat; color: #fff8d8; fog: false">
+      material="shader: flat; color: #ffcc00; fog: false">
     </a-sphere>
 
     <!-- CAMERA RIG (Starts bobbing at surface) -->
@@ -487,10 +487,19 @@
       sunlight.setAttribute('light', 'intensity', sunIntensity);
       ambientLight.setAttribute('light', 'intensity', Math.max(0.9 - (depth / maxDepth) * 0.85, 0.04));
 
-      // Hide the sun once the diver sinks deeper
+      // Sun gradually loses its yellow color as we sink
       const sun = document.getElementById('surface-sun');
 
       if (sun) {
+        const fade = Math.min(depth / 35, 1);
+
+        const sunColor = interpolateColor(
+          '#ffcc00',  // Golden yellow at the surface
+          '#f0f4ff',  // Pale, almost white at 35 metres
+          fade
+        );
+
+        sun.setAttribute('material', 'color', sunColor);
         sun.setAttribute('visible', depth < 35);
       }
       zoneDisplay.textContent = zoneName;
