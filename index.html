@@ -139,10 +139,11 @@
     <!-- MOVING OCEAN SURFACE -->
     <a-entity
       id="water-surface"
+      visible="false"
       geometry="primitive: plane; width: 1000; height: 1000; segmentsWidth: 120; segmentsHeight: 120"
       rotation="-90 0 0"
       position="0 4 0"
-      material="color: #80cde8; transparent: true; opacity: 0.8; side: double; roughness: 0.25; metalness: 0.1">
+      material="shader: flat; color: #80cde8; transparent: true; opacity: 0.12; side: double; depthWrite: false">
     </a-entity>
 
     <!-- DYNAMIC CREATURES CONTAINER -->
