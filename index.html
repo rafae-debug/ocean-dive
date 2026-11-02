@@ -121,7 +121,7 @@
     </a-sphere>
 
     <!-- CAMERA RIG (Starts bobbing at surface) -->
-    <a-entity id="rig" position="0 0 0">
+    <a-entity id="rig" position="0 7 0">
       <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false" near="0.1">
         
         <!-- Spotlight Headlamp -->
@@ -139,11 +139,10 @@
     <!-- MOVING OCEAN SURFACE -->
     <a-entity
       id="water-surface"
-      visible="false"
       geometry="primitive: plane; width: 1000; height: 1000; segmentsWidth: 120; segmentsHeight: 120"
       rotation="-90 0 0"
       position="0 4 0"
-      material="shader: flat; color: #80cde8; transparent: true; opacity: 0.12; side: double; depthWrite: false">
+      material="shader: flat; color: #21a6c9; transparent: true; opacity: 0.72; side: double; depthWrite: false">
     </a-entity>
 
     <!-- DYNAMIC CREATURES CONTAINER -->
@@ -653,7 +652,13 @@
         currentDepth += descentSpeed * deltaTime;
         if (currentDepth > maxDepth) currentDepth = maxDepth;
 
-        cameraRig.setAttribute('position', `0 ${-currentDepth} 0`);
+        cameraRig.setAttribute('position', `0 ${7-currentDepth} 0`);
+        // Show ocean surface above water, hide it after submerging
+        const waterSurface = document.getElementById('water-surface');
+
+        if (waterSurface) {
+          waterSurface.setAttribute('visible', currentDepth < 3);
+        }
         depthDisplay.textContent = currentDepth.toFixed(1);
 
         updateEnvironmentStage(currentDepth);
@@ -693,7 +698,8 @@
     recenterBtn.addEventListener('click', () => {
       isDiving = false;
       currentDepth = 0;
-      cameraRig.setAttribute('position', '0 0 0');
+      cameraRig.setAttribute('position', '0 7 0');
+      document.getElementById('water-surface').setAttribute('visible', true);
       
       depthDisplay.textContent = '0.0';
       startScreen.classList.remove('hidden');
@@ -712,6 +718,7 @@
 
     // Safely Initialize Scene Elements
     const initApp = () => {
+      updateEnvironmentStage(0);
       if (sceneEl.hasLoaded) {
         setupProceduralElements();
         requestAnimationFrame(animateDescent);
