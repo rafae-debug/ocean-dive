@@ -115,7 +115,7 @@
         <!-- NEW: USER'S ARMS FOLLOW THE CAMERA -->
         <a-entity
           id="diver-arms"
-          position="0 -0.55 -0.85"
+          position="0 -0.48 -0.85"
           rotation="0 0 0"
           gltf-model="url(rigged_arms.glb)">
         </a-entity>
@@ -181,6 +181,11 @@
       const factor = 1.15 / Math.max(size.x, size.y, size.z);
 
       model.position.sub(center);
+      model.rotation.set(
+        THREE.MathUtils.degToRad(90),
+        0,
+        0
+      );
       diverArms.object3D.scale.setScalar(factor);
 
       console.log('Diver arms loaded and fitted', size, factor);
