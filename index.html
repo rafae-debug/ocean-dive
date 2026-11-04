@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,7 +96,7 @@
 
   <!-- A-Frame VR Scene -->
   <a-scene embedded renderer="antialias: true; colorManagement: true; alpha: false;" fog="type: exponential; color: #88ccff; density: 0.005">
-
+    
     <!-- ASSET MANAGER FOR CUSTOM 3D MODELS -->
     <a-assets timeout="3000">
       <!-- ⚠️ WARNING: If these paths are active but the files are missing, it causes a Script Error! -->
@@ -124,10 +123,10 @@
     <!-- CAMERA RIG (Starts bobbing at surface) -->
     <a-entity id="rig" position="0 7 0">
       <a-camera id="camera" look-controls="pointerLockEnabled: false" wasd-controls="enabled: false" near="0.1">
-
+        
         <!-- Spotlight Headlamp -->
         <a-light id="flashlight" type="spot" color="#cceeff" intensity="0" angle="35" penumbra="0.7" distance="90" position="0 0.1 0"></a-light>
-
+        
         <!-- Exhale Bubbles Spawn Point -->
         <a-entity id="player-bubbles"></a-entity>
 
@@ -170,7 +169,7 @@
         <a-cone color="#e0f7fc" radius-bottom="2.5" height="12" position="0 2 22" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
         <a-cone color="#e0f7fc" radius-bottom="2.2" height="11" position="10 3 20" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
         <a-cone color="#e0f7fc" radius-bottom="1.8" height="9" position="20 6 15" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
-
+        
         <!-- Throat Void Glowing Red Core -->
         <a-circle position="0 -8 -15" radius="22" color="#ff0022" material="shader: flat; opacity: 0.2; transparent: true"></a-circle>
       </a-entity>
@@ -183,8 +182,8 @@
     // --- Application State ---
     let isDiving = false;
     let isMuted = false;
-    let currentDepth = 0;
-    const maxDepth = 480;
+    let currentDepth = 0; 
+    const maxDepth = 480; 
     const descentSpeed = 1.3; // Slower, agonizing descent (1.3 m/s)
 
     // DOM Elements
@@ -196,7 +195,7 @@
     const depthDisplay = document.getElementById('depth-display');
     const zoneDisplay = document.getElementById('zone-display');
     const statusDisplay = document.getElementById('descent-status');
-
+    
     // A-Frame Entities
     const cameraRig = document.getElementById('rig');
     const cameraEl = document.getElementById('camera');
@@ -289,14 +288,14 @@
     }
 
     function scheduleBreathing() {
-      if (!isDiving || currentDepth < HANDS_UNDERWATER_DEPTH || isMuted || !audioCtx) {
+      if (!isDiving || currentDepth < 3 || isMuted || !audioCtx) {
         setTimeout(scheduleBreathing, 1000);
         return;
       }
-
+      
       let rate = 1 + (currentDepth / maxDepth) * 2.0; // Breathe faster as depth increases
       let breathDur = 4500 / rate;
-
+      
       // Audio Envelope for Exhale
       const now = audioCtx.currentTime;
       breatheGain.gain.cancelScheduledValues(now);
@@ -314,24 +313,24 @@
     }
 
     function spawnPlayerBubble() {
-      if (!isDiving || currentDepth < HANDS_UNDERWATER_DEPTH) return;
+      if (!isDiving || currentDepth < 3) return;
       const container = document.getElementById('player-bubbles');
       if (!container) return;
 
       const bubble = document.createElement('a-sphere');
       const startX = (Math.random() - 0.5) * 0.2;
       const startZ = -0.3 + (Math.random() - 0.5) * 0.1;
-
+      
       bubble.setAttribute('position', `${startX} -0.3 ${startZ}`);
       bubble.setAttribute('radius', `${0.015 + Math.random() * 0.02}`);
       bubble.setAttribute('color', '#ffffff');
       bubble.setAttribute('material', 'transparent: true; opacity: 0.5; shader: flat');
-
+      
       bubble.setAttribute('animation', `property: position; to: ${startX * 2} 2.5 ${startZ * 1.5}; dur: ${2000 + Math.random()*1000}; easing: easeInSine`);
-
+      
       container.appendChild(bubble);
       setTimeout(() => {
-        if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+          if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
       }, 3000);
     }
 
@@ -341,7 +340,7 @@
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'triangle';
-
+        
         const freq = 45 + (currentDepth / maxDepth) * 45; // Thumps get higher pitched
         const vol = 0.08 + (currentDepth / maxDepth) * 0.45; // Get significantly louder
 
@@ -373,135 +372,8 @@
       bassOsc.frequency.setTargetAtTime(50 - ratio * 22, audioCtx.currentTime, 0.4);
     }
 
-    // --- IMPORTED RIGGED SCUBA HANDS ---
-    // Put free_pack_-_vr_hands_rigged.glb beside index.html on GitHub.
-    // The asset contains BOTH hands and a skeletal Idle animation.
-    const HANDS_UNDERWATER_DEPTH = 7; // camera y=7-depth; water surface y≈4
-    const handBubbles = [];
-    const handClock = new AFRAME.THREE.Clock();
-    const handEmitters = [];
-    let handRig = null;
-    let previousView = null;
-    let handMotion = 0;
-    let bubbleCooldown = [0, 0];
-
-    function initializeDiverHands() {
-      if (handRig) return;
-      const T = AFRAME.THREE;
-      handRig = document.createElement('a-entity');
-      handRig.setAttribute('id', 'scuba-hands');
-      handRig.setAttribute('gltf-model', 'url(free_pack_-_vr_hands_rigged.glb)');
-      handRig.setAttribute('animation-mixer', 'clip: Idle; loop: repeat; timeScale: 0.55');
-      handRig.setAttribute('visible', true);
-      // The pack contains both hands. Place it below the center of view.
-      handRig.object3D.position.set(0, -0.15, -1.2);
-      handRig.object3D.rotation.set(-0.55, 0, 0);
-      cameraEl.appendChild(handRig);
-
-      handRig.addEventListener('model-loaded', () => {
-        const model = handRig.getObject3D('mesh');
-        if (!model) return;
-        // Recolor actual skinned human-hand meshes as black neoprene.
-        model.traverse(obj => {
-          if (!obj.isMesh) return;
-          const change = mat => {
-            const m = mat.clone();
-            m.map = null;
-            m.color.set('#20292e');
-            m.roughness = 0.78;
-            m.metalness = 0.03;
-            m.needsUpdate = true;
-            return m;
-          };
-          obj.material = Array.isArray(obj.material)
-            ? obj.material.map(change) : change(obj.material);
-          obj.frustumCulled = false;
-        });
-      });
-      handRig.addEventListener('model-error', e => {
-        console.warn('Could not load VR hands GLB. Upload the file beside index.html.', e);
-      });
-      // Emitters are attached to the model's coordinate frame and move with it.
-      for (const side of [-1, 1]) {
-        const emitter = new T.Object3D();
-        emitter.position.set(side * 0.25, 0.05, -0.07);
-        handRig.object3D.add(emitter);
-        handEmitters.push(emitter);
-      }
-    }
-
-    function emitHandBubble(emitter) {
-      if (!isDiving || currentDepth < HANDS_UNDERWATER_DEPTH || handBubbles.length >= 65) return;
-      const T = AFRAME.THREE;
-      emitter.updateWorldMatrix(true, false);
-      const origin = new T.Vector3();
-      emitter.getWorldPosition(origin);
-      const radius = 0.006 + Math.random() * 0.011;
-      const material = new T.MeshBasicMaterial({
-        color: 0xd6f5ff, transparent: true, opacity: 0.52, depthWrite: false
-      });
-      const mesh = new T.Mesh(new T.SphereGeometry(radius, 10, 8), material);
-      mesh.position.copy(origin);
-      sceneEl.object3D.add(mesh);
-      handBubbles.push({
-        mesh, age: 0, lifetime: 1.5 + Math.random() * 0.8,
-        drift: new T.Vector3((Math.random() - 0.5) * 0.16,
-          0.33 + Math.random() * 0.22, (Math.random() - 0.5) * 0.12)
-      });
-    }
-
-    function updateDiverHands(dt, elapsed) {
-      if (!handRig) return;
-      const T = AFRAME.THREE;
-      const q = new T.Quaternion();
-      cameraEl.object3D.getWorldQuaternion(q);
-      const angles = new T.Euler().setFromQuaternion(q, 'YXZ');
-      if (!previousView) previousView = {yaw: angles.y, pitch: angles.x};
-      const dy = Math.atan2(Math.sin(angles.y - previousView.y),
-        Math.cos(angles.y - previousView.y));
-      const yawSpeed = T.MathUtils.clamp(dy / Math.max(dt, 0.001), -2, 2);
-      const pitchSpeed = T.MathUtils.clamp(
-        (angles.x - previousView.pitch) / Math.max(dt, 0.001), -2, 2);
-      previousView = {yaw: angles.y, pitch: angles.x};
-      const activity = Math.abs(yawSpeed) + Math.abs(pitchSpeed);
-      const smooth = 1 - Math.exp(-dt * 3.6);
-      handMotion += (activity - handMotion) * smooth;
-      handRig.object3D.visible = true;
-      if (isDiving) {
-        // Soft underwater inertia, without snapping the hands to the view.
-        const float = Math.sin(elapsed * 1.15) * 0.015;
-        const targetX = -yawSpeed * 0.035;
-        const targetY = -0.43 + float + pitchSpeed * 0.02;
-        handRig.object3D.position.x += (targetX - handRig.object3D.position.x) * smooth;
-        handRig.object3D.position.y += (targetY - handRig.object3D.position.y) * smooth;
-        handRig.object3D.rotation.z += (-yawSpeed * 0.055 - handRig.object3D.rotation.z) * smooth;
-        handRig.object3D.rotation.x += (-0.55 + pitchSpeed * 0.035 - handRig.object3D.rotation.x) * smooth;
-      }
-      const underwater = isDiving && currentDepth >= HANDS_UNDERWATER_DEPTH;
-      for (let i = 0; i < handEmitters.length; i++) {
-        bubbleCooldown[i] = Math.max(0, bubbleCooldown[i] - dt);
-        if (underwater && handMotion > 0.18 && bubbleCooldown[i] <= 0) {
-          emitHandBubble(handEmitters[i]);
-          bubbleCooldown[i] = 0.15 + Math.random() * 0.13;
-        }
-      }
-      for (let i = handBubbles.length - 1; i >= 0; i--) {
-        const b = handBubbles[i];
-        b.age += dt;
-        b.mesh.position.addScaledVector(b.drift, dt);
-        b.mesh.material.opacity = 0.52 * Math.max(0, 1 - b.age / b.lifetime);
-        if (b.age >= b.lifetime || !underwater) {
-          sceneEl.object3D.remove(b.mesh);
-          b.mesh.geometry.dispose();
-          b.mesh.material.dispose();
-          handBubbles.splice(i, 1);
-        }
-      }
-    }
-
     // --- Procedural Scene Content Setup ---
     function setupProceduralElements() {
-      initializeDiverHands();
       // Removed orbiting fish that caused the spinning optical illusion (vection).
       // We will now rely on the main linear dynamic spawner even at the surface.
 
@@ -640,15 +512,15 @@
 
       const creature = document.createElement('a-entity');
       const rigPos = cameraRig.getAttribute('position');
-
+      
       // Safely calculate player's current looking direction using A-Frame attributes
       const camRot = cameraEl.getAttribute('rotation'); // returns {x, y, z} in degrees
-      const lookAngle = camRot ? (camRot.y * (Math.PI / 180)) : 0;
-
+      const lookAngle = camRot ? (camRot.y * (Math.PI / 180)) : 0; 
+      
       // ADJUSTED PROBABILITIES: Fewer giants, more small fish to reduce crowding
       let tier = 1;
       const r = Math.random();
-
+      
       if (currentDepth < 20) {
         tier = 1; // 100% fish
       } else if (currentDepth < 60) {
@@ -672,8 +544,8 @@
 
       // Keep creatures strict to the periphery (approx 60-80 degrees left or right)
       const sideMultiplier = Math.random() > 0.5 ? 1 : -1;
-      const offsetAngle = lookAngle + (sideMultiplier * (Math.PI / 2.5));
-
+      const offsetAngle = lookAngle + (sideMultiplier * (Math.PI / 2.5)); 
+      
       // POSITION FIX: Push larger creatures much further out into the distance
       const fogFactor = Math.min(currentDepth / 300, 1);
       let dist;
@@ -688,15 +560,15 @@
       } else {
         dist = 70 + (Math.random() * 30); // Leviathans (70-100m) - Very Far
       }
-
+      
       // Slightly pull them in if fog is thick, but max 25% closer so they don't get too near
       if (tier > 1) {
-        dist = dist - (fogFactor * (dist * 0.25));
+        dist = dist - (fogFactor * (dist * 0.25)); 
       }
-
+      
       const spawnX = Math.sin(offsetAngle) * dist;
       const spawnZ = Math.cos(offsetAngle) * dist;
-
+      
       // Keep all creatures below the ocean surface (y = 4)
       const waterLevel = 4;
       const underwaterY = rigPos.y - 2 - (Math.random() * 15);
@@ -705,18 +577,19 @@
       const surfaceClearance = tier === 1 ? 8 : tier === 2 ? 12 : 25;
 
       const spawnY = Math.min(underwaterY, waterLevel - surfaceClearance);
+     
 
       creature.setAttribute('position', `${spawnX} ${spawnY} ${spawnZ}`);
-
+      
       // Make them swim PARALLEL to the player's view or away from the center
       const swimTargetX = spawnX - Math.sin(lookAngle) * 200;
       const swimTargetZ = spawnZ - Math.cos(lookAngle) * 200;
-
+      
       // ROTATION FIX: Calculate rotation so they face the direction they are swimming
       const dx = swimTargetX - spawnX;
       const dz = swimTargetZ - spawnZ;
-      const swimRotY = (Math.atan2(dx, dz) * (180 / Math.PI));
-      creature.setAttribute('rotation', `0 ${swimRotY} 0`);
+      const swimRotY = (Math.atan2(dx, dz) * (180 / Math.PI)); 
+      creature.setAttribute('rotation', `0 ${swimRotY} 0`); 
 
       let animDuration = 40000;
 
@@ -754,11 +627,11 @@
       }
 
       creature.setAttribute('animation', `property: position; to: ${swimTargetX} ${spawnY} ${swimTargetZ}; dur: ${animDuration}; easing: linear`);
-
+      
       container.appendChild(creature);
 
       setTimeout(() => {
-        if(creature.parentNode) creature.parentNode.removeChild(creature);
+          if(creature.parentNode) creature.parentNode.removeChild(creature);
       }, animDuration + 1000);
     }
 
@@ -768,8 +641,6 @@
 
     function animateDescent(timestamp) {
       animateWaterSurface(timestamp);
-      const handDt = Math.min(handClock.getDelta(), 0.05);
-      updateDiverHands(handDt, handClock.elapsedTime);
       if (!lastTimestamp) lastTimestamp = timestamp;
       const deltaTime = (timestamp - lastTimestamp) / 1000;
       lastTimestamp = timestamp;
@@ -785,6 +656,7 @@
         spawnCreepyCreature();
         spawnTimer = timestamp;
       }
+      
 
       if (isDiving && currentDepth < maxDepth) {
         currentDepth += descentSpeed * deltaTime;
@@ -849,32 +721,17 @@
       cameraRig.setAttribute('position', '0 7 0');
       document.getElementById('water-surface').setAttribute('visible', true);
       document.getElementById('water-surface').setAttribute('material', 'opacity', 0.72);
-
+      
       depthDisplay.textContent = '0.0';
       startScreen.classList.remove('hidden');
       statusDisplay.textContent = "Surface Ready";
       updateEnvironmentStage(0);
-
+      
       if (audioCtx) {
         if (ambientGain) ambientGain.gain.setTargetAtTime(0.25, audioCtx.currentTime, 0.1);
         if (bassGain) bassGain.gain.setTargetAtTime(0.01, audioCtx.currentTime, 0.1);
       }
-
-      for (const b of handBubbles) {
-        sceneEl.object3D.remove(b.mesh);
-        b.mesh.geometry.dispose();
-        b.mesh.material.dispose();
-      }
-      handBubbles.length = 0;
-      if (handRig) {
-        handRig.object3D.visible = false;
-        handRig.object3D.position.set(0, -0.43, -0.72);
-        handRig.object3D.rotation.set(-0.55, 0, 0);
-      }
-      handMotion = 0;
-      previousView = null;
-      bubbleCooldown = [0, 0];
-      previousView = null;
+      
       const container = document.getElementById('dynamic-creatures');
       if (container) container.innerHTML = '';
       setupProceduralElements();
@@ -893,7 +750,7 @@
         });
       }
     };
-
+    
     // Start initialization
     initApp();
 
