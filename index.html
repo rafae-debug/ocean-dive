@@ -207,7 +207,7 @@
       const size = bounds.getSize(new THREE.Vector3());
       const center = bounds.getCenter(new THREE.Vector3());
 
-      const factor = 1.65 / Math.max(
+      const factor = 2.0 / Math.max(
         size.x, size.y, size.z
       );
 
@@ -265,26 +265,26 @@
       aimBone(
         leftUpper,
         leftElbow,
-        cameraDirection(-0.30, -0.06, -1)
+        cameraDirection(-0.45, -0.04, -1)
       );
 
       aimBone(
         leftElbow,
         leftHand,
-        cameraDirection(-0.20, 0.02, -1)
+        cameraDirection(-0.40, 0.02, -1)
       );
 
       // RIGHT ARM: shoulder -> elbow -> hand, forward.
       aimBone(
         rightUpper,
         rightElbow,
-        cameraDirection(0.30, -0.06, -1)
+        cameraDirection(0.45, -0.04, -1)
       );
 
       aimBone(
         rightElbow,
         rightHand,
-        cameraDirection(0.20, 0.02, -1)
+        cameraDirection(0.40, 0.02, -1)
       );
 
       // Put the shoulders below the user's viewpoint.
@@ -308,7 +308,7 @@
       );
 
       const targetShoulder = new THREE.Vector3(
-        0, -0.56, -0.25
+        0, -0.48, -0.25
       );
 
       diverArms.object3D.position.add(
