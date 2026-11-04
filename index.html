@@ -5,9 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Megalohydrothalassophobia: Into the Abyss</title>
+
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
@@ -46,13 +48,19 @@
 
 <body class="bg-black text-white">
 
-  <!-- HTML UI Overlay / Control HUD -->
-  <div id="ui-overlay" class="fixed inset-0 z-50 pointer-events-none flex flex-col justify-between p-6 scuba-vignette">
+  <!-- UI -->
+  <div
+    id="ui-overlay"
+    class="fixed inset-0 z-50 pointer-events-none flex flex-col justify-between p-6 scuba-vignette">
 
     <div class="flex justify-between items-start w-full">
+
       <div class="bg-slate-950/85 backdrop-blur-md border border-cyan-500/40 p-4 rounded-xl shadow-2xl">
         <h1 class="text-lg md:text-xl font-bold text-cyan-400 tracking-wider flex items-center gap-2">
-          <span id="status-dot" class="w-3 h-3 rounded-full bg-cyan-400 inline-block animate-ping"></span>
+          <span
+            id="status-dot"
+            class="w-3 h-3 rounded-full bg-cyan-400 inline-block animate-ping">
+          </span>
           DEPTH TELEMETRY
         </h1>
 
@@ -63,7 +71,9 @@
 
         <div class="text-xs text-cyan-300/70 tracking-widest uppercase">
           Status:
-          <span id="descent-status" class="text-emerald-400 font-bold">Surface Ready</span>
+          <span id="descent-status" class="text-emerald-400 font-bold">
+            Surface Ready
+          </span>
         </div>
       </div>
 
@@ -75,9 +85,13 @@
           Phase 1: Epipelagic (Sunlight Zone)
         </div>
       </div>
+
     </div>
 
-    <div id="start-screen" class="pointer-events-auto self-center text-center max-w-md bg-slate-950/95 border border-cyan-500/50 p-8 rounded-2xl shadow-2xl backdrop-blur-xl pulse-glow">
+    <div
+      id="start-screen"
+      class="pointer-events-auto self-center text-center max-w-md bg-slate-950/95 border border-cyan-500/50 p-8 rounded-2xl shadow-2xl backdrop-blur-xl pulse-glow">
+
       <div class="text-cyan-400 text-xs font-semibold tracking-widest uppercase mb-2">
         Psychological VR Dive
       </div>
@@ -91,30 +105,41 @@
         Put on headphones and look around 360°.
       </p>
 
-      <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg transition-all transform active:scale-95 tracking-wider text-lg border border-cyan-300/40">
+      <button
+        id="start-btn"
+        class="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg transition-all transform active:scale-95 tracking-wider text-lg border border-cyan-300/40">
         ENTER THE DEPTHS
       </button>
+
     </div>
 
     <div class="flex justify-between items-end w-full">
+
       <div class="text-xs text-slate-300 bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800">
         [Look Around 360° • Mouse / VR Headset]
       </div>
 
       <div class="flex gap-2 pointer-events-auto">
-        <button id="sound-toggle-btn" class="bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-lg text-xs font-semibold tracking-wider transition flex items-center gap-1">
+
+        <button
+          id="sound-toggle-btn"
+          class="bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-lg text-xs font-semibold tracking-wider transition flex items-center gap-1">
           🔊 AUDIO:
           <span id="sound-state" class="text-emerald-400">ON</span>
         </button>
 
-        <button id="recenter-btn" class="bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-lg text-xs font-semibold tracking-wider transition">
+        <button
+          id="recenter-btn"
+          class="bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-lg text-xs font-semibold tracking-wider transition">
           RESTART DIVE
         </button>
+
       </div>
     </div>
+
   </div>
 
-  <!-- A-Frame VR Scene -->
+  <!-- OCEAN SCENE -->
   <a-scene
     embedded
     renderer="antialias: true; colorManagement: true; alpha: false;"
@@ -149,7 +174,6 @@
     <!-- CAMERA RIG -->
     <a-entity id="rig" position="0 7 0">
 
-      <!-- The head/camera rotates independently -->
       <a-camera
         id="camera"
         look-controls="pointerLockEnabled: false"
@@ -167,24 +191,33 @@
           position="0 0.1 0">
         </a-light>
 
-        <!-- Breathing bubbles remain attached to the head -->
+        <!-- Keep breathing bubbles -->
         <a-entity id="player-bubbles"></a-entity>
 
-      </a-camera>
+        <!--
+          IMPORTANT:
+          This is back INSIDE the camera, exactly like
+          the version where your arms were visible.
 
-      <!-- Arms are attached to the body, NOT the head -->
-      <a-entity id="arm-anchor" position="0 0 0">
-        <a-entity
-          id="diver-arms"
-          gltf-model="url(rigged_arms.glb)">
+          The arm-anchor cancels head pitch in JavaScript.
+        -->
+        <a-entity id="arm-anchor" position="0 0 0">
+
+          <a-entity
+            id="diver-arms"
+            position="0 0 0"
+            gltf-model="url(rigged_arms.glb)">
+          </a-entity>
+
         </a-entity>
-      </a-entity>
+
+      </a-camera>
 
       <a-entity id="particle-container"></a-entity>
 
     </a-entity>
 
-    <!-- MOVING OCEAN SURFACE -->
+    <!-- WATER SURFACE -->
     <a-entity
       id="water-surface"
       geometry="primitive: plane; width: 1000; height: 1000; segmentsWidth: 120; segmentsHeight: 120"
@@ -195,18 +228,51 @@
 
     <a-entity id="dynamic-creatures"></a-entity>
 
-    <!-- STAGE 4: HADAL TRENCH -->
+    <!-- HADAL TRENCH -->
     <a-entity id="stage-4-group" position="0 -450 0">
+
       <a-entity id="colossal-entity" position="0 -50 -35">
 
-        <a-sphere id="titan-eye-left" position="-16 16 -5" radius="7" color="#000000">
-          <a-sphere position="0 0 5" radius="3.5" color="#ff0000" material="emissive: #ff0000; emissiveIntensity: 0.9"></a-sphere>
-          <a-sphere position="0 0 7" radius="1.4" color="#000000"></a-sphere>
+        <a-sphere
+          id="titan-eye-left"
+          position="-16 16 -5"
+          radius="7"
+          color="#000000">
+
+          <a-sphere
+            position="0 0 5"
+            radius="3.5"
+            color="#ff0000"
+            material="emissive: #ff0000; emissiveIntensity: 0.9">
+          </a-sphere>
+
+          <a-sphere
+            position="0 0 7"
+            radius="1.4"
+            color="#000000">
+          </a-sphere>
+
         </a-sphere>
 
-        <a-sphere id="titan-eye-right" position="16 16 -5" radius="7" color="#000000">
-          <a-sphere position="0 0 5" radius="3.5" color="#ff0000" material="emissive: #ff0000; emissiveIntensity: 0.9"></a-sphere>
-          <a-sphere position="0 0 7" radius="1.4" color="#000000"></a-sphere>
+        <a-sphere
+          id="titan-eye-right"
+          position="16 16 -5"
+          radius="7"
+          color="#000000">
+
+          <a-sphere
+            position="0 0 5"
+            radius="3.5"
+            color="#ff0000"
+            material="emissive: #ff0000; emissiveIntensity: 0.9">
+          </a-sphere>
+
+          <a-sphere
+            position="0 0 7"
+            radius="1.4"
+            color="#000000">
+          </a-sphere>
+
         </a-sphere>
 
         <a-torus
@@ -231,6 +297,7 @@
         </a-circle>
 
       </a-entity>
+
     </a-entity>
 
   </a-scene>
@@ -239,11 +306,21 @@
 
     // =========================================================
     // FIRST-PERSON ARMS
-    // Bigger, wider, buoyant, independent of head pitch
+    //
+    // Uses the WORKING camera-relative pose.
+    // Does not translate individual bones.
+    // Does not change the model's root orientation.
+    //
+    // Changes:
+    // 1. Slightly bigger
+    // 2. Slightly wider
+    // 3. Gentle floating
+    // 4. Cancels head pitch
     // =========================================================
 
     const diverArms = document.getElementById('diver-arms');
     const armAnchor = document.getElementById('arm-anchor');
+    const cameraEl = document.getElementById('camera');
 
     const armPose = {
       ready: false,
@@ -253,14 +330,19 @@
     };
 
     diverArms.addEventListener('model-loaded', () => {
+
       const T = AFRAME.THREE;
       const model = diverArms.getObject3D('mesh');
 
-      if (!model) return;
+      if (!model) {
+        console.error('Arm model was not found.');
+        return;
+      }
 
       const bones = {};
 
       model.traverse(o => {
+
         if (o.isBone) {
           bones[o.name] = o;
         }
@@ -273,13 +355,17 @@
             : [o.material];
 
           materials.forEach(material => {
-            if (material) material.side = T.DoubleSide;
+            if (material) {
+              material.side = T.DoubleSide;
+            }
           });
         }
+
       });
 
       const leftShoulder = bones['upperarm_l_02'];
       const rightShoulder = bones['upperarm_r_020'];
+
       const leftHand = bones['hand_l_04'];
       const rightHand = bones['hand_r_022'];
 
@@ -289,11 +375,14 @@
         !leftHand ||
         !rightHand
       ) {
-        console.error('Expected arm bones missing from GLB');
+        console.error(
+          'Expected arm bones are missing.',
+          Object.keys(bones)
+        );
         return;
       }
 
-      // Keep the model and its skeleton together.
+      // Reset transforms to the working starting pose.
       model.position.set(0, 0, 0);
       model.rotation.set(0, 0, 0);
       model.scale.set(1, 1, 1);
@@ -304,23 +393,40 @@
 
       model.updateMatrixWorld(true);
 
-      // Read the model's existing shoulder/hand positions.
+      // Get bone positions in the model's coordinate system.
       const local = bone => {
         const world = new T.Vector3();
+
         bone.getWorldPosition(world);
+
         return model.parent.worldToLocal(world);
       };
 
       const ls = local(leftShoulder);
       const rs = local(rightShoulder);
+
       const lh = local(leftHand);
       const rh = local(rightHand);
 
-      const shoulderMid = ls.clone().add(rs).multiplyScalar(0.5);
-      const handMid = lh.clone().add(rh).multiplyScalar(0.5);
+      const shoulderMid = ls
+        .clone()
+        .add(rs)
+        .multiplyScalar(0.5);
 
-      const across = rh.clone().sub(lh).normalize();
-      const forward = handMid.clone().sub(shoulderMid).normalize();
+      const handMid = lh
+        .clone()
+        .add(rh)
+        .multiplyScalar(0.5);
+
+      const across = rh
+        .clone()
+        .sub(lh)
+        .normalize();
+
+      const forward = handMid
+        .clone()
+        .sub(shoulderMid)
+        .normalize();
 
       const up = new T.Vector3()
         .crossVectors(across, forward)
@@ -330,7 +436,8 @@
         .crossVectors(across, up)
         .normalize();
 
-      // Align the existing arm model to the viewer's body.
+      // Preserve the orientation method from the
+      // version where the arms appeared correctly.
       const sourceBasis = new T.Matrix4().makeBasis(
         across,
         up,
@@ -344,20 +451,25 @@
       );
 
       const rot = new T.Quaternion().setFromRotationMatrix(
-        targetBasis.multiply(sourceBasis.clone().invert())
+        targetBasis.multiply(
+          sourceBasis.clone().invert()
+        )
       );
 
       diverArms.object3D.quaternion.copy(rot);
 
-      // Make the arms larger than the previous version.
-      const length =
-        (ls.distanceTo(lh) + rs.distanceTo(rh)) / 2;
+      // The working version used 1.38.
+      // Increase only slightly to avoid clipping.
+      const length = (
+        ls.distanceTo(lh) +
+        rs.distanceTo(rh)
+      ) / 2;
 
-      const scale = 1.65 / Math.max(length, 0.001);
+      const scale = 1.48 / Math.max(length, 0.001);
 
       diverArms.object3D.scale.setScalar(scale);
 
-      // Position the shoulders low and near the viewer.
+      // Keep the same shoulder location that worked.
       const rotatedMid = shoulderMid
         .clone()
         .applyQuaternion(rot)
@@ -365,17 +477,17 @@
 
       diverArms.object3D.position.set(
         -rotatedMid.x,
-        -1.02 - rotatedMid.y,
+        -0.94 - rotatedMid.y,
         -0.12 - rotatedMid.z
       );
 
-      // Widen the V without translating the bones.
-      const spread = 0.22;
+      // Slightly more outward spread.
+      // The working value was 0.13.
+      const spread = 0.16;
 
       leftShoulder.rotateZ(-spread);
       rightShoulder.rotateZ(spread);
 
-      // Save the final resting pose for animation.
       armPose.bones = [
         leftShoulder,
         rightShoulder
@@ -385,62 +497,75 @@
         bone => bone.quaternion.clone()
       );
 
-      armPose.basePosition = diverArms.object3D.position.clone();
+      armPose.basePosition =
+        diverArms.object3D.position.clone();
+
       armPose.ready = true;
 
-      console.log('First-person floating arms ready');
+      console.log('Diver arms loaded and visible.');
     });
 
     diverArms.addEventListener('model-error', e => {
-      console.error('Could not load rigged_arms.glb', e);
+      console.error(
+        'Could not load rigged_arms.glb',
+        e
+      );
     });
 
     function animateDiverArms(seconds) {
 
-      // Head turns horizontally; the body follows its heading.
-      // Head pitch is NOT copied, so looking down reveals the arms.
-      const camera = document.getElementById('camera');
+      // IMPORTANT:
+      // The arms are still inside the camera.
+      // Cancel camera pitch so looking down
+      // does not drag the arms downward.
+      //
+      // A-Frame look-controls applies pitch on the
+      // camera. The inverse X rotation on this child
+      // keeps the arms level with the body.
 
-      if (camera && armAnchor) {
-        const heading = camera.object3D.rotation.y;
-
-        armAnchor.object3D.rotation.y = heading;
+      if (cameraEl && armAnchor) {
+        armAnchor.object3D.rotation.x =
+          -cameraEl.object3D.rotation.x;
       }
 
       if (!armPose.ready) return;
 
-      // Each arm floats at a slightly different rhythm.
+      // Gentle independent floating.
       const leftFloat =
-        Math.sin(seconds * 0.78) * 0.045;
+        Math.sin(seconds * 0.75) * 0.032;
 
       const rightFloat =
-        Math.sin(seconds * 0.71 + 1.6) * 0.045;
+        Math.sin(seconds * 0.69 + 1.5) * 0.032;
 
       const leftSway =
-        Math.sin(seconds * 0.48 + 0.3) * 0.016;
+        Math.sin(seconds * 0.43 + 0.3) * 0.009;
 
       const rightSway =
-        Math.sin(seconds * 0.52 + 2.0) * 0.016;
+        Math.sin(seconds * 0.47 + 1.8) * 0.009;
 
       armPose.bones.forEach((bone, i) => {
-        bone.quaternion.copy(armPose.originals[i]);
 
-        bone.rotateX(i === 0 ? leftFloat : rightFloat);
-        bone.rotateY(i === 0 ? leftSway : rightSway);
+        bone.quaternion.copy(
+          armPose.originals[i]
+        );
+
+        bone.rotateX(
+          i === 0 ? leftFloat : rightFloat
+        );
+
+        bone.rotateY(
+          i === 0 ? leftSway : rightSway
+        );
+
       });
 
-      // Very gentle whole-body buoyancy.
-      const floatY =
-        Math.sin(seconds * 0.64) * 0.025;
+      // Tiny movement of both arms together.
+      // Keep it small to prevent clipping.
+      const bob =
+        Math.sin(seconds * 0.6) * 0.015;
 
-      const swayX =
-        Math.sin(seconds * 0.37) * 0.012;
-
-      diverArms.object3D.position.set(
-        armPose.basePosition.x + swayX,
-        armPose.basePosition.y + floatY,
-        armPose.basePosition.z
-      );
+      diverArms.object3D.position.y =
+        armPose.basePosition.y + bob;
     }
 
     // =========================================================
@@ -464,7 +589,6 @@
     const statusDisplay = document.getElementById('descent-status');
 
     const cameraRig = document.getElementById('rig');
-    const cameraEl = document.getElementById('camera');
     const sceneEl = document.querySelector('a-scene');
 
     const oceanSky = document.getElementById('ocean-sky');
@@ -488,18 +612,22 @@
 
       try {
         const AudioContext =
-          window.AudioContext || window.webkitAudioContext;
+          window.AudioContext ||
+          window.webkitAudioContext;
 
         audioCtx = new AudioContext();
 
         masterGain = audioCtx.createGain();
+
         masterGain.gain.setValueAtTime(
           isMuted ? 0 : 1,
           audioCtx.currentTime
         );
+
         masterGain.connect(audioCtx.destination);
 
-        const bufferSize = audioCtx.sampleRate * 2;
+        const bufferSize =
+          audioCtx.sampleRate * 2;
 
         const noiseBuffer = audioCtx.createBuffer(
           1,
@@ -507,7 +635,8 @@
           audioCtx.sampleRate
         );
 
-        const output = noiseBuffer.getChannelData(0);
+        const output =
+          noiseBuffer.getChannelData(0);
 
         let b0 = 0;
         let b1 = 0;
@@ -528,42 +657,53 @@
           b5 = -0.7616 * b5 - white * 0.0168980;
 
           output[i] = (
-            b0 + b1 + b2 + b3 + b4 + b5 + b6 +
-            white * 0.5362
+            b0 + b1 + b2 + b3 + b4 + b5 +
+            b6 + white * 0.5362
           ) * 0.08;
 
           b6 = white * 0.115926;
         }
 
-        const whiteNoise = audioCtx.createBufferSource();
+        const whiteNoise =
+          audioCtx.createBufferSource();
+
         whiteNoise.buffer = noiseBuffer;
         whiteNoise.loop = true;
 
-        const filter = audioCtx.createBiquadFilter();
+        const filter =
+          audioCtx.createBiquadFilter();
+
         filter.type = 'lowpass';
+
         filter.frequency.setValueAtTime(
           400,
           audioCtx.currentTime
         );
 
         ambientGain = audioCtx.createGain();
+
         ambientGain.gain.setValueAtTime(
           0.25,
           audioCtx.currentTime
         );
 
         breatheGain = audioCtx.createGain();
+
         breatheGain.gain.setValueAtTime(
           0.001,
           audioCtx.currentTime
         );
 
-        const breatheFilter = audioCtx.createBiquadFilter();
+        const breatheFilter =
+          audioCtx.createBiquadFilter();
+
         breatheFilter.type = 'bandpass';
+
         breatheFilter.frequency.setValueAtTime(
           800,
           audioCtx.currentTime
         );
+
         breatheFilter.Q.setValueAtTime(
           1.2,
           audioCtx.currentTime
@@ -583,6 +723,7 @@
         bassGain = audioCtx.createGain();
 
         bassOsc.type = 'sine';
+
         bassOsc.frequency.setValueAtTime(
           50,
           audioCtx.currentTime
@@ -601,23 +742,39 @@
         scheduleBreathing();
 
       } catch (e) {
-        console.warn('Audio Context init error:', e);
+        console.warn(
+          'Audio Context init error:',
+          e
+        );
       }
     }
 
     function scheduleBreathing() {
-      if (!isDiving || currentDepth < 3 || isMuted || !audioCtx) {
+
+      if (
+        !isDiving ||
+        currentDepth < 3 ||
+        isMuted ||
+        !audioCtx
+      ) {
         setTimeout(scheduleBreathing, 1000);
         return;
       }
 
-      let rate = 1 + (currentDepth / maxDepth) * 2.0;
-      let breathDur = 4500 / rate;
+      let rate =
+        1 + (currentDepth / maxDepth) * 2.0;
+
+      let breathDur =
+        4500 / rate;
 
       const now = audioCtx.currentTime;
 
       breatheGain.gain.cancelScheduledValues(now);
-      breatheGain.gain.setValueAtTime(0.001, now);
+
+      breatheGain.gain.setValueAtTime(
+        0.001,
+        now
+      );
 
       breatheGain.gain.linearRampToValueAtTime(
         0.18,
@@ -629,26 +786,40 @@
         now + (breathDur / 1000) * 0.9
       );
 
-      let bubbleCount = 3 + Math.floor(Math.random() * 4);
+      let bubbleCount =
+        3 + Math.floor(Math.random() * 4);
 
       for (let i = 0; i < bubbleCount; i++) {
-        setTimeout(spawnPlayerBubble, i * 150);
+        setTimeout(
+          spawnPlayerBubble,
+          i * 150
+        );
       }
 
-      setTimeout(scheduleBreathing, breathDur);
+      setTimeout(
+        scheduleBreathing,
+        breathDur
+      );
     }
 
-    // Breathing bubbles: preserved.
+    // Breathing bubbles are preserved.
     function spawnPlayerBubble() {
+
       if (!isDiving || currentDepth < 3) return;
 
-      const container = document.getElementById('player-bubbles');
+      const container =
+        document.getElementById('player-bubbles');
+
       if (!container) return;
 
-      const bubble = document.createElement('a-sphere');
+      const bubble =
+        document.createElement('a-sphere');
 
-      const startX = (Math.random() - 0.5) * 0.2;
-      const startZ = -0.3 + (Math.random() - 0.5) * 0.1;
+      const startX =
+        (Math.random() - 0.5) * 0.2;
+
+      const startZ =
+        -0.3 + (Math.random() - 0.5) * 0.1;
 
       bubble.setAttribute(
         'position',
@@ -682,16 +853,25 @@
     }
 
     function playHeartbeatSound() {
-      if (!audioCtx || !isDiving || isMuted) return;
+
+      if (!audioCtx || !isDiving || isMuted) {
+        return;
+      }
 
       try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        const osc =
+          audioCtx.createOscillator();
+
+        const gain =
+          audioCtx.createGain();
 
         osc.type = 'triangle';
 
-        const freq = 45 + (currentDepth / maxDepth) * 45;
-        const vol = 0.08 + (currentDepth / maxDepth) * 0.45;
+        const freq =
+          45 + (currentDepth / maxDepth) * 45;
+
+        const vol =
+          0.08 + (currentDepth / maxDepth) * 0.45;
 
         osc.frequency.setValueAtTime(
           freq,
@@ -723,18 +903,29 @@
     }
 
     function scheduleHeartbeat() {
+
       playHeartbeatSound();
 
-      const factor = Math.min(currentDepth / maxDepth, 1);
-      const nextDelay = 1300 - factor * 950;
+      const factor =
+        Math.min(currentDepth / maxDepth, 1);
 
-      setTimeout(scheduleHeartbeat, nextDelay);
+      const nextDelay =
+        1300 - factor * 950;
+
+      setTimeout(
+        scheduleHeartbeat,
+        nextDelay
+      );
     }
 
     function updateAudioParams(depth) {
-      if (!audioCtx || !ambientGain || !bassGain) return;
 
-      const ratio = Math.min(depth / maxDepth, 1);
+      if (!audioCtx || !ambientGain || !bassGain) {
+        return;
+      }
+
+      const ratio =
+        Math.min(depth / maxDepth, 1);
 
       bassGain.gain.setTargetAtTime(
         0.02 + ratio * 0.5,
@@ -750,10 +941,11 @@
     }
 
     // =========================================================
-    // PROCEDURAL SCENE CONTENT
+    // PROCEDURAL SCENE
     // =========================================================
 
     function setupProceduralElements() {
+
       const particleContainer =
         document.getElementById('particle-container');
 
@@ -761,12 +953,20 @@
         particleContainer &&
         particleContainer.children.length === 0
       ) {
-        for (let i = 0; i < 75; i++) {
-          const particle = document.createElement('a-sphere');
 
-          const px = (Math.random() - 0.5) * 28;
-          const py = (Math.random() - 0.5) * 28;
-          const pz = (Math.random() - 0.5) * 28;
+        for (let i = 0; i < 75; i++) {
+
+          const particle =
+            document.createElement('a-sphere');
+
+          const px =
+            (Math.random() - 0.5) * 28;
+
+          const py =
+            (Math.random() - 0.5) * 28;
+
+          const pz =
+            (Math.random() - 0.5) * 28;
 
           particle.setAttribute(
             'position',
@@ -797,7 +997,9 @@
     // =========================================================
 
     function hexToRgb(hex) {
-      const c = parseInt(hex.replace('#', ''), 16);
+
+      const c =
+        parseInt(hex.replace('#', ''), 16);
 
       return [
         (c >> 16) & 255,
@@ -807,34 +1009,56 @@
     }
 
     function rgbToHex(r, g, b) {
+
       return '#' + [r, g, b]
-        .map(x => Math.round(x).toString(16).padStart(2, '0'))
+        .map(x =>
+          Math.round(x)
+            .toString(16)
+            .padStart(2, '0')
+        )
         .join('');
     }
 
-    function interpolateColor(color1Hex, color2Hex, factor) {
+    function interpolateColor(
+      color1Hex,
+      color2Hex,
+      factor
+    ) {
+
       const c1 = hexToRgb(color1Hex);
       const c2 = hexToRgb(color2Hex);
 
-      const r = c1[0] + factor * (c2[0] - c1[0]);
-      const g = c1[1] + factor * (c2[1] - c1[1]);
-      const b = c1[2] + factor * (c2[2] - c1[2]);
+      const r =
+        c1[0] + factor * (c2[0] - c1[0]);
+
+      const g =
+        c1[1] + factor * (c2[1] - c1[1]);
+
+      const b =
+        c1[2] + factor * (c2[2] - c1[2]);
 
       return rgbToHex(r, g, b);
     }
 
     function animateWaterSurface(time) {
-      const surface = document.getElementById('water-surface');
+
+      const surface =
+        document.getElementById('water-surface');
+
       if (!surface) return;
 
-      const mesh = surface.getObject3D('mesh');
+      const mesh =
+        surface.getObject3D('mesh');
+
       if (!mesh) return;
 
       const geometry = mesh.geometry;
       const positions = geometry.attributes.position;
+
       const t = time * 0.001;
 
       for (let i = 0; i < positions.count; i++) {
+
         const x = positions.getX(i);
         const y = positions.getY(i);
 
@@ -843,7 +1067,10 @@
           Math.sin(y * 0.11 + t * 0.5) * 0.3 +
           Math.sin((x + y) * 0.06 + t) * 0.2;
 
-        positions.setZ(i, wave * 0.35);
+        positions.setZ(
+          i,
+          wave * 0.35
+        );
       }
 
       positions.needsUpdate = true;
@@ -851,6 +1078,7 @@
     }
 
     function updateEnvironmentStage(depth) {
+
       let skyColor;
       let fogDensity;
       let sunIntensity;
@@ -858,6 +1086,7 @@
       let fogColor;
 
       if (depth < 50) {
+
         const t = Math.min(
           Math.max((depth - 5) / 45, 0),
           1
@@ -873,11 +1102,19 @@
         fogDensity = 0.005 + t * 0.008;
         sunIntensity = 1.8 * (1 - t * 0.6);
 
-        zoneName = 'Phase 1: Epipelagic (Sunlight Zone)';
-        flashlight.setAttribute('light', 'intensity', 0);
+        zoneName =
+          'Phase 1: Epipelagic (Sunlight Zone)';
+
+        flashlight.setAttribute(
+          'light',
+          'intensity',
+          0
+        );
 
       } else if (depth < 150) {
-        const t = (depth - 50) / 100;
+
+        const t =
+          (depth - 50) / 100;
 
         skyColor = interpolateColor(
           '#004f77',
@@ -889,11 +1126,19 @@
         fogDensity = 0.013 + t * 0.012;
         sunIntensity = 0.72 * (1 - t);
 
-        zoneName = 'Phase 2: Mesopelagic (Twilight Zone)';
-        flashlight.setAttribute('light', 'intensity', t * 0.8);
+        zoneName =
+          'Phase 2: Mesopelagic (Twilight Zone)';
+
+        flashlight.setAttribute(
+          'light',
+          'intensity',
+          t * 0.8
+        );
 
       } else if (depth < 300) {
-        const t = (depth - 150) / 150;
+
+        const t =
+          (depth - 150) / 150;
 
         skyColor = interpolateColor(
           '#000c14',
@@ -905,7 +1150,8 @@
         fogDensity = 0.025 + t * 0.015;
         sunIntensity = 0;
 
-        zoneName = 'Phase 3: Bathypelagic (Midnight Abyss)';
+        zoneName =
+          'Phase 3: Bathypelagic (Midnight Abyss)';
 
         flashlight.setAttribute(
           'light',
@@ -914,14 +1160,17 @@
         );
 
       } else {
-        const t = Math.min((depth - 300) / 180, 1);
+
+        const t =
+          Math.min((depth - 300) / 180, 1);
 
         skyColor = '#000204';
         fogColor = '#000204';
         fogDensity = 0.040 + t * 0.020;
         sunIntensity = 0;
 
-        zoneName = 'Phase 4: Hadal Trench (The Deep Void)';
+        zoneName =
+          'Phase 4: Hadal Trench (The Deep Void)';
 
         flashlight.setAttribute(
           'light',
@@ -930,7 +1179,10 @@
         );
       }
 
-      oceanSky.setAttribute('color', skyColor);
+      oceanSky.setAttribute(
+        'color',
+        skyColor
+      );
 
       sceneEl.setAttribute(
         'fog',
@@ -952,9 +1204,11 @@
         )
       );
 
-      const sun = document.getElementById('surface-sun');
+      const sun =
+        document.getElementById('surface-sun');
 
       if (sun) {
+
         const fade = Math.min(
           Math.max((depth - 5) / 30, 0),
           1
@@ -966,27 +1220,40 @@
           fade
         );
 
-        sun.setAttribute('material', 'color', sunColor);
-        sun.setAttribute('visible', depth < 35);
+        sun.setAttribute(
+          'material',
+          'color',
+          sunColor
+        );
+
+        sun.setAttribute(
+          'visible',
+          depth < 35
+        );
       }
 
       zoneDisplay.textContent = zoneName;
     }
 
     // =========================================================
-    // DYNAMIC CREATURE SPAWNING
+    // CREATURE SPAWNING
     // =========================================================
 
     function spawnCreepyCreature() {
+
       const container =
         document.getElementById('dynamic-creatures');
 
       if (!container) return;
 
-      const creature = document.createElement('a-entity');
-      const rigPos = cameraRig.getAttribute('position');
+      const creature =
+        document.createElement('a-entity');
 
-      const camRot = cameraEl.getAttribute('rotation');
+      const rigPos =
+        cameraRig.getAttribute('position');
+
+      const camRot =
+        cameraEl.getAttribute('rotation');
 
       const lookAngle = camRot
         ? camRot.y * (Math.PI / 180)
@@ -996,23 +1263,28 @@
       const r = Math.random();
 
       if (currentDepth < 20) {
+
         tier = 1;
 
       } else if (currentDepth < 60) {
+
         tier = r < 0.75 ? 1 : 2;
 
       } else if (currentDepth < 110) {
+
         if (r < 0.60) tier = 1;
         else if (r < 0.80) tier = 2;
         else tier = 3;
 
       } else if (currentDepth < 180) {
+
         if (r < 0.50) tier = 1;
         else if (r < 0.65) tier = 2;
         else if (r < 0.85) tier = 3;
         else tier = 4;
 
       } else {
+
         if (r < 0.40) tier = 1;
         else if (r < 0.55) tier = 2;
         else if (r < 0.70) tier = 3;
@@ -1020,37 +1292,48 @@
         else tier = 5;
       }
 
-      const sideMultiplier = Math.random() > 0.5 ? 1 : -1;
+      const sideMultiplier =
+        Math.random() > 0.5 ? 1 : -1;
 
       const offsetAngle =
-        lookAngle + sideMultiplier * (Math.PI / 2.5);
+        lookAngle +
+        sideMultiplier * (Math.PI / 2.5);
 
-      const fogFactor = Math.min(currentDepth / 300, 1);
+      const fogFactor =
+        Math.min(currentDepth / 300, 1);
 
       let dist;
 
       if (tier === 1) {
+
         dist = 5 + Math.random() * 5;
 
       } else if (tier === 2) {
+
         dist = 15 + Math.random() * 10;
 
       } else if (tier === 3) {
+
         dist = 30 + Math.random() * 15;
 
       } else if (tier === 4) {
+
         dist = 50 + Math.random() * 20;
 
       } else {
+
         dist = 70 + Math.random() * 30;
       }
 
       if (tier > 1) {
-        dist = dist - fogFactor * (dist * 0.25);
+        dist -= fogFactor * (dist * 0.25);
       }
 
-      const spawnX = Math.sin(offsetAngle) * dist;
-      const spawnZ = Math.cos(offsetAngle) * dist;
+      const spawnX =
+        Math.sin(offsetAngle) * dist;
+
+      const spawnZ =
+        Math.cos(offsetAngle) * dist;
 
       const waterLevel = 4;
 
@@ -1077,8 +1360,11 @@
       const swimTargetZ =
         spawnZ - Math.cos(lookAngle) * 200;
 
-      const dx = swimTargetX - spawnX;
-      const dz = swimTargetZ - spawnZ;
+      const dx =
+        swimTargetX - spawnX;
+
+      const dz =
+        swimTargetZ - spawnZ;
 
       const swimRotY =
         Math.atan2(dx, dz) * (180 / Math.PI);
@@ -1091,6 +1377,7 @@
       let animDuration = 40000;
 
       if (tier === 1) {
+
         creature.innerHTML = `
           <a-gltf-model
             src="school_of_herring.glb"
@@ -1102,6 +1389,7 @@
         animDuration = 90000;
 
       } else if (tier === 2) {
+
         creature.innerHTML = `
           <a-gltf-model
             src="ray.glb"
@@ -1113,6 +1401,7 @@
         animDuration = 30000;
 
       } else if (tier === 3) {
+
         creature.innerHTML = `
           <a-gltf-model
             src="dolphin.glb"
@@ -1124,6 +1413,7 @@
         animDuration = 20000;
 
       } else if (tier === 4) {
+
         creature.innerHTML = `
           <a-gltf-model
             src="whale.glb"
@@ -1136,6 +1426,7 @@
         animDuration = 45000;
 
       } else if (tier === 5) {
+
         creature.innerHTML = `
           <a-gltf-model
             src="blue_whale.glb"
@@ -1162,13 +1453,14 @@
     }
 
     // =========================================================
-    // MAIN RENDER FRAME
+    // MAIN ANIMATION
     // =========================================================
 
     let lastTimestamp = 0;
     let spawnTimer = 0;
 
     function animateDescent(timestamp) {
+
       animateWaterSurface(timestamp);
       animateDiverArms(timestamp * 0.001);
 
@@ -1191,12 +1483,15 @@
         currentDepth >= 3 &&
         timestamp - spawnTimer > spawnInterval
       ) {
+
         spawnCreepyCreature();
         spawnTimer = timestamp;
       }
 
       if (isDiving && currentDepth < maxDepth) {
-        currentDepth += descentSpeed * deltaTime;
+
+        currentDepth +=
+          descentSpeed * deltaTime;
 
         if (currentDepth > maxDepth) {
           currentDepth = maxDepth;
@@ -1211,6 +1506,7 @@
           document.getElementById('water-surface');
 
         if (waterSurface) {
+
           const fadeStart = 2.5;
           const fadeEnd = 10;
 
@@ -1244,7 +1540,11 @@
         const colossal =
           document.getElementById('colossal-entity');
 
-        if (colossal && currentDepth >= 350) {
+        if (
+          colossal &&
+          currentDepth >= 350
+        ) {
+
           const jawPulse =
             Math.sin(timestamp * 0.0015) * 2.0;
 
@@ -1259,10 +1559,11 @@
     }
 
     // =========================================================
-    // UI CONTROLS
+    // BUTTON CONTROLS
     // =========================================================
 
     startBtn.addEventListener('click', () => {
+
       initAudio();
 
       if (
@@ -1283,6 +1584,7 @@
     });
 
     soundToggleBtn.addEventListener('click', () => {
+
       isMuted = !isMuted;
 
       soundState.textContent =
@@ -1294,6 +1596,7 @@
           : 'text-emerald-400';
 
       if (masterGain && audioCtx) {
+
         masterGain.gain.setValueAtTime(
           isMuted ? 0 : 1,
           audioCtx.currentTime
@@ -1302,6 +1605,7 @@
     });
 
     recenterBtn.addEventListener('click', () => {
+
       isDiving = false;
       currentDepth = 0;
       spawnTimer = performance.now();
@@ -1317,18 +1621,25 @@
 
       document
         .getElementById('water-surface')
-        .setAttribute('material', 'opacity', 0.72);
+        .setAttribute(
+          'material',
+          'opacity',
+          0.72
+        );
 
       depthDisplay.textContent = '0.0';
 
       startScreen.classList.remove('hidden');
 
-      statusDisplay.textContent = 'Surface Ready';
+      statusDisplay.textContent =
+        'Surface Ready';
 
       updateEnvironmentStage(0);
 
       if (audioCtx) {
+
         if (ambientGain) {
+
           ambientGain.gain.setTargetAtTime(
             0.25,
             audioCtx.currentTime,
@@ -1337,6 +1648,7 @@
         }
 
         if (bassGain) {
+
           bassGain.gain.setTargetAtTime(
             0.01,
             audioCtx.currentTime,
@@ -1360,16 +1672,21 @@
     // =========================================================
 
     const initApp = () => {
+
       updateEnvironmentStage(0);
 
       if (sceneEl.hasLoaded) {
+
         setupProceduralElements();
         requestAnimationFrame(animateDescent);
 
       } else {
+
         sceneEl.addEventListener('loaded', () => {
+
           setupProceduralElements();
           requestAnimationFrame(animateDescent);
+
         });
       }
     };
@@ -1377,5 +1694,6 @@
     initApp();
 
   </script>
+
 </body>
 </html>
