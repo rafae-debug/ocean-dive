@@ -115,7 +115,7 @@
         <!-- NEW: USER'S ARMS FOLLOW THE CAMERA -->
         <a-entity
           id="diver-arms"
-          position="0 -0.48 -0.75"
+          position="0 0 0"
           gltf-model="url(rigged_arms.glb)">
         </a-entity>
 
@@ -161,61 +161,114 @@
   </a-scene>
 
   <script>
-    
-    
-    
-    // --- FIRST-PERSON RIGGED DIVER ARMS ---
+
+
+
+    // --- FIRST-PERSON ARMS: SHOULDER-ANCHORED, OUTWARD V ---
+    // This GLB has one skinned mesh with separate left/right arm bones.
     const diverArms = document.getElementById('diver-arms');
+    const armPose = { ready: false, bones: [], originals: [], t: 0 };
 
     diverArms.addEventListener('model-loaded', () => {
-      const THREE = AFRAME.THREE;
+      const T = AFRAME.THREE;
       const model = diverArms.getObject3D('mesh');
-
       if (!model) return;
 
-      
-      // No bone manipulation or stretching.
-      model.traverse(obj => {
-        if (obj.isMesh) {
-          obj.frustumCulled = false;
+      const bones = {};
+      model.traverse(o => {
+        if (o.isBone) bones[o.name] = o;
+        if (o.isSkinnedMesh) {
+          o.frustumCulled = false;
+          o.material.side = T.DoubleSide;
         }
       });
 
-      // Reset transformations.
+      const leftShoulder = bones['upperarm_l_02'];
+      const rightShoulder = bones['upperarm_r_020'];
+      const leftHand = bones['hand_l_04'];
+      const rightHand = bones['hand_r_022'];
+      if (!leftShoulder || !rightShoulder || !leftHand || !rightHand) {
+        console.error('Expected arm bones missing from GLB');
+        return;
+      }
+
+      // Do not move the skinned mesh separately from its skeleton.
+      // All camera placement happens on the parent entity.
       model.position.set(0, 0, 0);
       model.rotation.set(0, 0, 0);
       model.scale.set(1, 1, 1);
+      diverArms.object3D.position.set(0, 0, 0);
+      diverArms.object3D.rotation.set(0, 0, 0);
+      diverArms.object3D.scale.setScalar(1);
+      model.updateMatrixWorld(true);
 
-      // Calculate the model's actual dimensions.
-      model.updateWorldMatrix(true, true);
+      // Get landmarks in the GLB's own coordinate system.
+      const local = bone => {
+        const world = new T.Vector3();
+        bone.getWorldPosition(world);
+        return model.parent.worldToLocal(world);
+      };
+      const ls = local(leftShoulder), rs = local(rightShoulder);
+      const lh = local(leftHand), rh = local(rightHand);
+      const shoulderMid = ls.clone().add(rs).multiplyScalar(0.5);
+      const handMid = lh.clone().add(rh).multiplyScalar(0.5);
+      const across = rh.clone().sub(lh).normalize();
+      const forward = handMid.clone().sub(shoulderMid).normalize();
+      const up = new T.Vector3().crossVectors(across, forward).normalize();
+      const front = new T.Vector3().crossVectors(across, up).normalize();
 
-      const bounds = new THREE.Box3().setFromObject(model);
-      const size = bounds.getSize(new THREE.Vector3());
-      const center = bounds.getCenter(new THREE.Vector3());
+      // Convert the model's shoulder-to-hand frame into camera coordinates.
+      // In camera space, -Z is forward; the arms open toward +/- X.
+      const sourceBasis = new T.Matrix4().makeBasis(across, up, front);
+      const targetBasis = new T.Matrix4().makeBasis(
+        new T.Vector3(1, 0, 0),
+        new T.Vector3(0, 1, 0),
+        new T.Vector3(0, 0, 1)
+      );
+      const rot = new T.Quaternion().setFromRotationMatrix(
+        targetBasis.multiply(sourceBasis.clone().invert())
+      );
+      diverArms.object3D.quaternion.copy(rot);
 
-      // Center the model without changing its bones.
-      model.position.sub(center);
+      // Scale from the real skeleton length, not the huge FBX scene bounds.
+      const length = (ls.distanceTo(lh) + rs.distanceTo(rh)) / 2;
+      const scale = 1.38 / Math.max(length, 0.001);
+      diverArms.object3D.scale.setScalar(scale);
 
-      // Fit the arms into a visible area.
-      const largest = Math.max(size.x, size.y, size.z);
-
-      if (largest > 0) {
-        diverArms.object3D.scale.setScalar(2.8 / largest);
-      }
-
-      diverArms.object3D.rotation.set(
-        THREE.MathUtils.degToRad(-55),
-        0,
-        0
+      // Put shoulders low and close to the viewer, so upper arms enter
+      // from the lower left/right edges instead of floating at the top.
+      const rotatedMid = shoulderMid.clone().applyQuaternion(rot).multiplyScalar(scale);
+      diverArms.object3D.position.set(
+        -rotatedMid.x,
+        -0.94 - rotatedMid.y,
+        -0.12 - rotatedMid.z
       );
 
-      console.log('Diver arms loaded and positioned');
+      // Open each shoulder outward a little farther. This is skeletal
+      // rotation, not mesh stretching or a whole-model flip.
+      const spread = 0.13;
+      leftShoulder.rotateZ(-spread);
+      rightShoulder.rotateZ(spread);
+
+      // Preserve subtle movement without breaking the mesh.
+      armPose.bones = [leftShoulder, rightShoulder];
+      armPose.originals = armPose.bones.map(b => b.quaternion.clone());
+      armPose.ready = true;
+      console.log('First-person arm skeleton ready');
     });
 
-    diverArms.addEventListener('model-error', event => {
-      console.error('Arms model failed to load:', event);
+    diverArms.addEventListener('model-error', e => {
+      console.error('Could not load rigged_arms.glb', e);
     });
 
+    function animateDiverArms(seconds) {
+      if (!armPose.ready) return;
+      const drift = Math.sin(seconds * 0.8) * 0.018;
+      armPose.bones.forEach((bone, i) => {
+        bone.quaternion.copy(armPose.originals[i]);
+        bone.rotateX(drift * (i ? -1 : 1));
+      });
+    }
 
     // --- APPLICATION STATE ---
     let isDiving = false;
@@ -700,6 +753,7 @@
 
     function animateDescent(timestamp) {
       animateWaterSurface(timestamp);
+      animateDiverArms(timestamp * 0.001);
 
       if (!lastTimestamp) lastTimestamp = timestamp;
 
