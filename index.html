@@ -392,9 +392,9 @@
       handRig.setAttribute('id', 'scuba-hands');
       handRig.setAttribute('gltf-model', 'url(free_pack_-_vr_hands_rigged.glb)');
       handRig.setAttribute('animation-mixer', 'clip: Idle; loop: repeat; timeScale: 0.55');
-      handRig.setAttribute('visible', false);
+      handRig.setAttribute('visible', true);
       // The pack contains both hands. Place it below the center of view.
-      handRig.object3D.position.set(0, -0.43, -0.72);
+      handRig.object3D.position.set(0, -0.15, -1.2);
       handRig.object3D.rotation.set(-0.55, 0, 0);
       cameraEl.appendChild(handRig);
 
@@ -466,7 +466,7 @@
       const activity = Math.abs(yawSpeed) + Math.abs(pitchSpeed);
       const smooth = 1 - Math.exp(-dt * 3.6);
       handMotion += (activity - handMotion) * smooth;
-      handRig.object3D.visible = isDiving;
+      handRig.object3D.visible = true;
       if (isDiving) {
         // Soft underwater inertia, without snapping the hands to the view.
         const float = Math.sin(elapsed * 1.15) * 0.015;
