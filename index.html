@@ -207,7 +207,7 @@
       const size = bounds.getSize(new THREE.Vector3());
       const center = bounds.getCenter(new THREE.Vector3());
 
-      const factor = 2.0 / Math.max(
+      const factor = 2.15 / Math.max(
         size.x, size.y, size.z
       );
 
@@ -265,30 +265,31 @@
       aimBone(
         leftUpper,
         leftElbow,
-        cameraDirection(-0.55, 0.02, -1)
+        cameraDirection(-0.65, 0.02, -1)
       );
 
       aimBone(
         leftElbow,
         leftHand,
-        cameraDirection(-0.55, 0.02, -1)
+        cameraDirection(-0.45, 0.02, -1)
       );
 
       // RIGHT ARM: shoulder -> elbow -> hand, forward.
       aimBone(
         rightUpper,
         rightElbow,
-        cameraDirection(0.55, 0.02, -1)
+        cameraDirection(0.65, 0.02, -1)
       );
 
       aimBone(
         rightElbow,
         rightHand,
-        cameraDirection(0.55, 0.02, -1)
+        cameraDirection(0.45, 0.02, -1)
       );
 
-      leftUpper.rotateY(THREE.MathUtils.degToRad(-8));
-      rightUpper.rotateY(THREE.MathUtils.degToRad(8));
+      leftHand.rotateZ(THREE.MathUtils.degToRad(-90));
+      rightHand.rotateZ(THREE.MathUtils.degToRad(90));
+
 
       // Put the shoulders below the user's viewpoint.
       // The arms extend forward along negative Z.
