@@ -161,7 +161,8 @@
   </a-scene>
 
   <script>
-   // --- FIRST-PERSON DIVER ARMS ---
+    
+    // --- FIRST-PERSON RIGGED DIVER ARMS ---
     const diverArms = document.getElementById('diver-arms');
 
     diverArms.addEventListener('model-loaded', () => {
@@ -169,40 +170,156 @@
       const model = diverArms.getObject3D('mesh');
       if (!model) return;
 
-      // Find all visible arm meshes
-      const meshes = [];
       model.traverse(obj => {
-        if (obj.isMesh || obj.isSkinnedMesh) {
-          meshes.push(obj);
-          obj.frustumCulled = false;
+        if (obj.isMesh) obj.frustumCulled = false;
+      });
+
+      // Find the actual skeleton bones in rigged_arms.glb.
+      const bones = {};
+
+      model.traverse(obj => {
+        if (obj.isBone) {
+          bones[obj.name] = obj;
         }
       });
 
-      // Center and scale the model
-      const box = new THREE.Box3().setFromObject(model);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
+      const leftUpper = bones['upperarm_l_02'];
+      const leftElbow = bones['lowerarm_l_03'];
+      const leftHand = bones['hand_l_04'];
 
-      const scale = 1.25 / Math.max(size.x, size.y, size.z);
+      const rightUpper = bones['upperarm_r_020'];
+      const rightElbow = bones['lowerarm_r_021'];
+      const rightHand = bones['hand_r_022'];
 
-      model.position.sub(center);
-      diverArms.object3D.scale.setScalar(scale);
+      if (!leftUpper || !leftElbow || !leftHand ||
+          !rightUpper || !rightElbow || !rightHand) {
+        console.error('Could not find all arm bones in the GLB.');
+        return;
+      }
 
-      // Rotate the whole model into a forward-reaching orientation
-      model.rotation.set(
-        THREE.MathUtils.degToRad(0),
-        THREE.MathUtils.degToRad(0),
-        THREE.MathUtils.degToRad(90)
+      // Reset all the previous guessed rotations.
+      model.rotation.set(0, 0, 0);
+
+      model.updateWorldMatrix(true, true);
+
+      // Scale the original model to human arm dimensions.
+      const bounds = new THREE.Box3().setFromObject(model);
+      const size = bounds.getSize(new THREE.Vector3());
+      const center = bounds.getCenter(new THREE.Vector3());
+
+      const factor = 1.45 / Math.max(
+        size.x, size.y, size.z
       );
 
-      // Position the model below eye level
-      diverArms.object3D.position.set(0, -0.55, -0.85);
+      model.position.sub(center);
+      diverArms.object3D.scale.setScalar(factor);
 
-      console.log('First-person diver arms loaded');
+      model.updateWorldMatrix(true, true);
+
+      // Rotate a bone so its child joint points in a
+      // specified direction, without rotating the other arm.
+      function aimBone(bone, childBone, desiredDirection) {
+        model.updateWorldMatrix(true, true);
+
+        const start = new THREE.Vector3();
+        const end = new THREE.Vector3();
+
+        bone.getWorldPosition(start);
+        childBone.getWorldPosition(end);
+
+        const currentDirection = end.sub(start).normalize();
+
+        const targetDirection = desiredDirection.clone().normalize();
+
+        const delta = new THREE.Quaternion().setFromUnitVectors(
+          currentDirection,
+          targetDirection
+        );
+
+        const boneWorldRotation = new THREE.Quaternion();
+        bone.getWorldQuaternion(boneWorldRotation);
+
+        const parentWorldRotation = new THREE.Quaternion();
+        bone.parent.getWorldQuaternion(parentWorldRotation);
+
+        const desiredWorldRotation = delta.multiply(boneWorldRotation);
+
+        bone.quaternion.copy(
+          parentWorldRotation.invert().multiply(desiredWorldRotation)
+        );
+
+        model.updateWorldMatrix(true, true);
+      }
+
+      // Directions are relative to the player's camera.
+      const cameraQuaternion = new THREE.Quaternion();
+      cameraEl.object3D.getWorldQuaternion(cameraQuaternion);
+
+      function cameraDirection(x, y, z) {
+        return new THREE.Vector3(x, y, z)
+          .normalize()
+          .applyQuaternion(cameraQuaternion);
+      }
+
+      // LEFT ARM: shoulder -> elbow -> hand, forward.
+      aimBone(
+        leftUpper,
+        leftElbow,
+        cameraDirection(-0.16, 0.03, -1)
+      );
+
+      aimBone(
+        leftElbow,
+        leftHand,
+        cameraDirection(-0.07, 0.02, -1)
+      );
+
+      // RIGHT ARM: shoulder -> elbow -> hand, forward.
+      aimBone(
+        rightUpper,
+        rightElbow,
+        cameraDirection(0.16, 0.03, -1)
+      );
+
+      aimBone(
+        rightElbow,
+        rightHand,
+        cameraDirection(0.07, 0.02, -1)
+      );
+
+      // Put the shoulders below the user's viewpoint.
+      // The arms extend forward along negative Z.
+      model.updateWorldMatrix(true, true);
+
+      const leftShoulder = new THREE.Vector3();
+      const rightShoulder = new THREE.Vector3();
+
+      leftUpper.getWorldPosition(leftShoulder);
+      rightUpper.getWorldPosition(rightShoulder);
+
+      const shoulderMidpoint = leftShoulder
+        .add(rightShoulder)
+        .multiplyScalar(0.5);
+
+      cameraEl.object3D.updateWorldMatrix(true, false);
+
+      const localShoulder = cameraEl.object3D.worldToLocal(
+        shoulderMidpoint.clone()
+      );
+
+      const targetShoulder = new THREE.Vector3(
+        0, -0.48, -0.30
+      );
+
+      diverArms.object3D.position.add(
+        targetShoulder.sub(localShoulder)
+      );
+
+      console.log('Rigged first-person arms positioned');
     });
 
-    diverArms.addEventListener('model-error', (event) => {
-      console.error('Could not load diver arms:', event);
+    diverArms.addEventListener('model-error', event => {
+      console.error('Could not load rigged_arms.glb', event);
     });
 
     // --- APPLICATION STATE ---
@@ -423,9 +540,9 @@
           const pz = (Math.random() - 0.5) * 28;
 
           particle.setAttribute('position', `${px} ${py} ${pz}`);
-          particle.setAttribute('radius', (Math.random() * 0.04 + 0.01).toFixed(3));
+          particle.setAttribute('radius', (Math.random() * 0.008 + 0.002).toFixed(3));
           particle.setAttribute('color', '#ffffff');
-          particle.setAttribute('opacity', (Math.random() * 0.6 + 0.2).toFixed(2));
+          particle.setAttribute('material', `shader: flat; transparent: true; opacity: ${(Math.random() * 0.18 + 0.05).toFixed(2)}; depthWrite: false`);
           particle.setAttribute('shader', 'flat');
 
           particleContainer.appendChild(particle);
