@@ -207,7 +207,7 @@
       const size = bounds.getSize(new THREE.Vector3());
       const center = bounds.getCenter(new THREE.Vector3());
 
-      const factor = 1.45 / Math.max(
+      const factor = 1.65 / Math.max(
         size.x, size.y, size.z
       );
 
@@ -265,26 +265,26 @@
       aimBone(
         leftUpper,
         leftElbow,
-        cameraDirection(-0.16, 0.03, -1)
+        cameraDirection(-0.30, -0.06, -1)
       );
 
       aimBone(
         leftElbow,
         leftHand,
-        cameraDirection(-0.07, 0.02, -1)
+        cameraDirection(-0.20, 0.02, -1)
       );
 
       // RIGHT ARM: shoulder -> elbow -> hand, forward.
       aimBone(
         rightUpper,
         rightElbow,
-        cameraDirection(0.16, 0.03, -1)
+        cameraDirection(0.30, -0.06, -1)
       );
 
       aimBone(
         rightElbow,
         rightHand,
-        cameraDirection(0.07, 0.02, -1)
+        cameraDirection(0.20, 0.02, -1)
       );
 
       // Put the shoulders below the user's viewpoint.
@@ -308,7 +308,7 @@
       );
 
       const targetShoulder = new THREE.Vector3(
-        0, -0.48, -0.30
+        0, -0.56, -0.25
       );
 
       diverArms.object3D.position.add(
@@ -316,6 +316,71 @@
       );
 
       console.log('Rigged first-person arms positioned');
+      // --- NATURAL UNDERWATER ARM MOTION ---
+      const leftRest = leftUpper.quaternion.clone();
+      const rightRest = rightUpper.quaternion.clone();
+
+      const leftElbowRest = leftElbow.quaternion.clone();
+      const rightElbowRest = rightElbow.quaternion.clone();
+
+      const leftHandRest = leftHand.quaternion.clone();
+      const rightHandRest = rightHand.quaternion.clone();
+
+      const fingerBones = [];
+
+      model.traverse(obj => {
+        if (
+          obj.isBone &&
+          /finger|thumb|index|middle|ring|pinky/i.test(obj.name)
+        ) {
+          fingerBones.push({
+            bone: obj,
+            rest: obj.quaternion.clone(),
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+      });
+
+      const motionClock = new THREE.Clock();
+
+      function animateArms() {
+        if (!diverArms.isConnected) return;
+
+        const t = motionClock.getElapsedTime();
+
+        // Arms drift at slightly different rhythms.
+        leftUpper.quaternion.copy(leftRest);
+        leftUpper.rotateX(Math.sin(t * 0.85) * 0.035);
+        leftUpper.rotateZ(Math.sin(t * 0.65) * 0.025);
+
+        rightUpper.quaternion.copy(rightRest);
+        rightUpper.rotateX(Math.sin(t * 0.85 + 1.1) * 0.035);
+        rightUpper.rotateZ(Math.sin(t * 0.65 + 1.4) * 0.025);
+
+        // Slight elbow flexing.
+        leftElbow.quaternion.copy(leftElbowRest);
+        leftElbow.rotateX(Math.sin(t * 0.9 + 0.5) * 0.025);
+
+        rightElbow.quaternion.copy(rightElbowRest);
+        rightElbow.rotateX(Math.sin(t * 0.9 + 1.6) * 0.025);
+
+        // Relaxed wrist motion.
+        leftHand.quaternion.copy(leftHandRest);
+        leftHand.rotateZ(Math.sin(t * 1.1) * 0.035);
+
+        rightHand.quaternion.copy(rightHandRest);
+        rightHand.rotateZ(Math.sin(t * 1.1 + 1.2) * 0.035);
+
+        // Gentle independent finger motion.
+        fingerBones.forEach(({bone, rest, phase}) => {
+          bone.quaternion.copy(rest);
+          bone.rotateX(Math.sin(t * 0.75 + phase) * 0.025);
+        });
+
+        requestAnimationFrame(animateArms);
+      }
+
+      animateArms();
     });
 
     diverArms.addEventListener('model-error', event => {
