@@ -200,10 +200,14 @@
       const largest = Math.max(size.x, size.y, size.z);
 
       if (largest > 0) {
-        diverArms.object3D.scale.setScalar(1.8 / largest);
+        diverArms.object3D.scale.setScalar(2.8 / largest);
       }
 
-      diverArms.object3D.position.set(0, -0.45, -1.5);
+      diverArms.object3D.rotation.set(
+        THREE.MathUtils.degToRad(-55),
+        0,
+        0
+      );
 
       console.log('Diver arms loaded and positioned');
     });
