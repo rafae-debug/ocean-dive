@@ -115,8 +115,7 @@
         <!-- NEW: USER'S ARMS FOLLOW THE CAMERA -->
         <a-entity
           id="diver-arms"
-          position="0 -0.65 -0.75"
-          rotation="0 0 0"
+          position="0 -0.48 -0.75"
           gltf-model="url(rigged_arms.glb)">
         </a-entity>
 
@@ -162,38 +161,48 @@
   </a-scene>
 
   <script>
-    // --- NEW: AUTOMATIC ARM MODEL SIZING ---
-    // Centers the imported arms and scales them to fit the view.
+   // --- FIRST-PERSON DIVER ARMS ---
     const diverArms = document.getElementById('diver-arms');
 
     diverArms.addEventListener('model-loaded', () => {
+      const THREE = AFRAME.THREE;
       const model = diverArms.getObject3D('mesh');
       if (!model) return;
 
-      const THREE = AFRAME.THREE;
-      model.updateMatrixWorld(true);
+      // Find all visible arm meshes
+      const meshes = [];
+      model.traverse(obj => {
+        if (obj.isMesh || obj.isSkinnedMesh) {
+          meshes.push(obj);
+          obj.frustumCulled = false;
+        }
+      });
 
-      const bounds = new THREE.Box3().setFromObject(model);
-      if (bounds.isEmpty()) return;
+      // Center and scale the model
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
 
-      const size = bounds.getSize(new THREE.Vector3());
-      const center = bounds.getCenter(new THREE.Vector3());
-      const factor = 1.15 / Math.max(size.x, size.y, size.z);
+      const scale = 1.25 / Math.max(size.x, size.y, size.z);
 
       model.position.sub(center);
-      model.rotation.set(
-        THREE.MathUtils.degToRad(90),
-        THREE.MathUtils.degToRad(180),
-        0,
-        0
-      );
-      diverArms.object3D.scale.setScalar(factor);
+      diverArms.object3D.scale.setScalar(scale);
 
-      console.log('Diver arms loaded and fitted', size, factor);
+      // Rotate the whole model into a forward-reaching orientation
+      model.rotation.set(
+        THREE.MathUtils.degToRad(0),
+        THREE.MathUtils.degToRad(0),
+        THREE.MathUtils.degToRad(90)
+      );
+
+      // Position the model below eye level
+      diverArms.object3D.position.set(0, -0.55, -0.85);
+
+      console.log('First-person diver arms loaded');
     });
 
     diverArms.addEventListener('model-error', (event) => {
-      console.error('Could not load rigged_arms.glb', event);
+      console.error('Could not load diver arms:', event);
     });
 
     // --- APPLICATION STATE ---
