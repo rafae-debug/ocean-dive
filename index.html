@@ -162,6 +162,7 @@
 
   <script>
     
+    
     // --- FIRST-PERSON RIGGED DIVER ARMS ---
     const diverArms = document.getElementById('diver-arms');
 
@@ -170,174 +171,190 @@
       const model = diverArms.getObject3D('mesh');
       if (!model) return;
 
+      const camera = document.getElementById('camera');
+
       model.traverse(obj => {
         if (obj.isMesh) obj.frustumCulled = false;
       });
 
-      // Find the actual skeleton bones in rigged_arms.glb.
       const bones = {};
-
       model.traverse(obj => {
-        if (obj.isBone) {
-          bones[obj.name] = obj;
-        }
+        if (obj.isBone) bones[obj.name] = obj;
       });
 
-      const leftUpper = bones['upperarm_l_02'];
-      const leftElbow = bones['lowerarm_l_03'];
-      const leftHand = bones['hand_l_04'];
+      const arms = [
+        {
+          upper: bones['upperarm_l_02'],
+          elbow: bones['lowerarm_l_03'],
+          hand: bones['hand_l_04']
+        },
+        {
+          upper: bones['upperarm_r_020'],
+          elbow: bones['lowerarm_r_021'],
+          hand: bones['hand_r_022']
+        }
+      ];
 
-      const rightUpper = bones['upperarm_r_020'];
-      const rightElbow = bones['lowerarm_r_021'];
-      const rightHand = bones['hand_r_022'];
-
-      if (!leftUpper || !leftElbow || !leftHand ||
-          !rightUpper || !rightElbow || !rightHand) {
-        console.error('Could not find all arm bones in the GLB.');
+      if (arms.some(a => !a.upper || !a.elbow || !a.hand)) {
+        console.error('Arm bones missing from rigged_arms.glb');
         return;
       }
 
-      // Reset all the previous guessed rotations.
       model.rotation.set(0, 0, 0);
-
       model.updateWorldMatrix(true, true);
 
-      // Scale the original model to human arm dimensions.
+      // Increase the apparent size of the arms.
       const bounds = new THREE.Box3().setFromObject(model);
       const size = bounds.getSize(new THREE.Vector3());
       const center = bounds.getCenter(new THREE.Vector3());
 
-      const factor = 2.15 / Math.max(
-        size.x, size.y, size.z
-      );
+      const factor = 2.5 / Math.max(size.x, size.y, size.z);
 
       model.position.sub(center);
       diverArms.object3D.scale.setScalar(factor);
 
-      model.updateWorldMatrix(true, true);
+      // Keep the whole model close to the player's camera.
+      diverArms.object3D.position.set(0, -0.45, -0.65);
 
-      // Rotate a bone so its child joint points in a
-      // specified direction, without rotating the other arm.
-      function aimBone(bone, childBone, desiredDirection) {
+      function updateMatrices() {
+        camera.object3D.updateWorldMatrix(true, true);
         model.updateWorldMatrix(true, true);
+      }
+
+      function cameraPoint(x, y, z) {
+        updateMatrices();
+        return camera.object3D.localToWorld(
+          new THREE.Vector3(x, y, z)
+        );
+      }
+
+      function cameraDirection(x, y, z) {
+        updateMatrices();
+        const q = new THREE.Quaternion();
+        camera.object3D.getWorldQuaternion(q);
+        return new THREE.Vector3(x, y, z)
+          .normalize()
+          .applyQuaternion(q);
+      }
+
+      // Move the actual shoulder bone, rather than
+      // shifting both arms together.
+      function moveShoulder(bone, targetWorld) {
+        updateMatrices();
+
+        const current = new THREE.Vector3();
+        bone.getWorldPosition(current);
+
+        const targetInParent = bone.parent.worldToLocal(
+          targetWorld.clone()
+        );
+
+        const currentInParent = bone.parent.worldToLocal(
+          current.clone()
+        );
+
+        bone.position.add(
+          targetInParent.sub(currentInParent)
+        );
+
+        updateMatrices();
+      }
+
+      function aimBone(bone, child, direction) {
+        updateMatrices();
 
         const start = new THREE.Vector3();
         const end = new THREE.Vector3();
 
         bone.getWorldPosition(start);
-        childBone.getWorldPosition(end);
+        child.getWorldPosition(end);
 
-        const currentDirection = end.sub(start).normalize();
+        const current = end.sub(start).normalize();
+        const desired = direction.clone().normalize();
 
-        const targetDirection = desiredDirection.clone().normalize();
+        const delta = new THREE.Quaternion()
+          .setFromUnitVectors(current, desired);
 
-        const delta = new THREE.Quaternion().setFromUnitVectors(
-          currentDirection,
-          targetDirection
-        );
+        const worldRotation = new THREE.Quaternion();
+        const parentRotation = new THREE.Quaternion();
 
-        const boneWorldRotation = new THREE.Quaternion();
-        bone.getWorldQuaternion(boneWorldRotation);
-
-        const parentWorldRotation = new THREE.Quaternion();
-        bone.parent.getWorldQuaternion(parentWorldRotation);
-
-        const desiredWorldRotation = delta.multiply(boneWorldRotation);
+        bone.getWorldQuaternion(worldRotation);
+        bone.parent.getWorldQuaternion(parentRotation);
 
         bone.quaternion.copy(
-          parentWorldRotation.invert().multiply(desiredWorldRotation)
+          parentRotation.invert()
+            .multiply(delta.multiply(worldRotation))
         );
 
-        model.updateWorldMatrix(true, true);
+        updateMatrices();
       }
 
-      // Directions are relative to the player's camera.
-      const cameraQuaternion = new THREE.Quaternion();
-      cameraEl.object3D.getWorldQuaternion(cameraQuaternion);
+      // Identify which arm is physically on which side
+      // of the camera, regardless of its bone name.
+      updateMatrices();
 
-      function cameraDirection(x, y, z) {
-        return new THREE.Vector3(x, y, z)
-          .normalize()
-          .applyQuaternion(cameraQuaternion);
-      }
+      const sideOf = arm => {
+        const p = new THREE.Vector3();
+        arm.upper.getWorldPosition(p);
+        return camera.object3D.worldToLocal(p).x;
+      };
 
-      // LEFT ARM: shoulder -> elbow -> hand, forward.
+      arms.sort((a, b) => sideOf(a) - sideOf(b));
+
+      const left = arms[0];
+      const right = arms[1];
+
+      // Two DISTINCT shoulder locations:
+      // lower-left and lower-right of the user's view.
+      moveShoulder(
+        left.upper,
+        cameraPoint(-0.52, -0.76, -0.22)
+      );
+
+      moveShoulder(
+        right.upper,
+        cameraPoint(0.52, -0.76, -0.22)
+      );
+
+      // LEFT: reaches forward-left.
       aimBone(
-        leftUpper,
-        leftElbow,
-        cameraDirection(-0.65, 0.02, -1)
+        left.upper,
+        left.elbow,
+        cameraDirection(-0.32, 0.12, -1)
       );
 
       aimBone(
-        leftElbow,
-        leftHand,
-        cameraDirection(-0.45, 0.02, -1)
+        left.elbow,
+        left.hand,
+        cameraDirection(-0.42, 0.10, -1)
       );
 
-      // RIGHT ARM: shoulder -> elbow -> hand, forward.
+      // RIGHT: reaches forward-right.
       aimBone(
-        rightUpper,
-        rightElbow,
-        cameraDirection(0.65, 0.02, -1)
+        right.upper,
+        right.elbow,
+        cameraDirection(0.32, 0.12, -1)
       );
 
       aimBone(
-        rightElbow,
-        rightHand,
-        cameraDirection(0.45, 0.02, -1)
+        right.elbow,
+        right.hand,
+        cameraDirection(0.42, 0.10, -1)
       );
 
-      leftHand.rotateZ(THREE.MathUtils.degToRad(-90));
-      rightHand.rotateZ(THREE.MathUtils.degToRad(90));
+      // Preserve the new pose for subtle underwater motion.
+      const rest = arms.map(arm => ({
+        upper: arm.upper.quaternion.clone(),
+        elbow: arm.elbow.quaternion.clone(),
+        hand: arm.hand.quaternion.clone()
+      }));
 
-
-      // Put the shoulders below the user's viewpoint.
-      // The arms extend forward along negative Z.
-      model.updateWorldMatrix(true, true);
-
-      const leftShoulder = new THREE.Vector3();
-      const rightShoulder = new THREE.Vector3();
-
-      leftUpper.getWorldPosition(leftShoulder);
-      rightUpper.getWorldPosition(rightShoulder);
-
-      const shoulderMidpoint = leftShoulder
-        .add(rightShoulder)
-        .multiplyScalar(0.5);
-
-      cameraEl.object3D.updateWorldMatrix(true, false);
-
-      const localShoulder = cameraEl.object3D.worldToLocal(
-        shoulderMidpoint.clone()
-      );
-
-      const targetShoulder = new THREE.Vector3(
-        0, -0.58, -0.25
-      );
-
-      diverArms.object3D.position.add(
-        targetShoulder.sub(localShoulder)
-      );
-
-      console.log('Rigged first-person arms positioned');
-      // --- NATURAL UNDERWATER ARM MOTION ---
-      const leftRest = leftUpper.quaternion.clone();
-      const rightRest = rightUpper.quaternion.clone();
-
-      const leftElbowRest = leftElbow.quaternion.clone();
-      const rightElbowRest = rightElbow.quaternion.clone();
-
-      const leftHandRest = leftHand.quaternion.clone();
-      const rightHandRest = rightHand.quaternion.clone();
-
-      const fingerBones = [];
+      const fingers = [];
 
       model.traverse(obj => {
-        if (
-          obj.isBone &&
-          /finger|thumb|index|middle|ring|pinky/i.test(obj.name)
-        ) {
-          fingerBones.push({
+        if (obj.isBone &&
+            /finger|thumb|index|middle|ring|pinky/i.test(obj.name)) {
+          fingers.push({
             bone: obj,
             rest: obj.quaternion.clone(),
             phase: Math.random() * Math.PI * 2
@@ -345,51 +362,51 @@
         }
       });
 
-      const motionClock = new THREE.Clock();
+      const clock = new THREE.Clock();
 
       function animateArms() {
         if (!diverArms.isConnected) return;
 
-        const t = motionClock.getElapsedTime();
+        const t = clock.getElapsedTime();
 
-        // Arms drift at slightly different rhythms.
-        leftUpper.quaternion.copy(leftRest);
-        leftUpper.rotateX(Math.sin(t * 0.85) * 0.035);
-        leftUpper.rotateZ(Math.sin(t * 0.65) * 0.025);
+        arms.forEach((arm, i) => {
+          const r = rest[i];
+          const phase = i * 1.2;
 
-        rightUpper.quaternion.copy(rightRest);
-        rightUpper.rotateX(Math.sin(t * 0.85 + 1.1) * 0.035);
-        rightUpper.rotateZ(Math.sin(t * 0.65 + 1.4) * 0.025);
+          arm.upper.quaternion.copy(r.upper);
+          arm.upper.rotateX(
+            Math.sin(t * 0.75 + phase) * 0.018
+          );
 
-        // Slight elbow flexing.
-        leftElbow.quaternion.copy(leftElbowRest);
-        leftElbow.rotateX(Math.sin(t * 0.9 + 0.5) * 0.025);
+          arm.elbow.quaternion.copy(r.elbow);
+          arm.elbow.rotateX(
+            Math.sin(t * 0.8 + phase) * 0.012
+          );
 
-        rightElbow.quaternion.copy(rightElbowRest);
-        rightElbow.rotateX(Math.sin(t * 0.9 + 1.6) * 0.025);
+          arm.hand.quaternion.copy(r.hand);
+          arm.hand.rotateZ(
+            Math.sin(t * 0.9 + phase) * 0.018
+          );
+        });
 
-        // Relaxed wrist motion.
-        leftHand.quaternion.copy(leftHandRest);
-        leftHand.rotateZ(Math.sin(t * 1.1) * 0.035);
-
-        rightHand.quaternion.copy(rightHandRest);
-        rightHand.rotateZ(Math.sin(t * 1.1 + 1.2) * 0.035);
-
-        // Gentle independent finger motion.
-        fingerBones.forEach(({bone, rest, phase}) => {
+        fingers.forEach(({ bone, rest, phase }) => {
           bone.quaternion.copy(rest);
-          bone.rotateX(Math.sin(t * 0.75 + phase) * 0.025);
+          bone.rotateX(
+            Math.sin(t * 0.7 + phase) * 0.018
+          );
         });
 
         requestAnimationFrame(animateArms);
       }
 
       animateArms();
+      console.log('Separated first-person diver arms initialized');
     });
 
     diverArms.addEventListener('model-error', event => {
       console.error('Could not load rigged_arms.glb', event);
     });
+
 
     // --- APPLICATION STATE ---
     let isDiving = false;
