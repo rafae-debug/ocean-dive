@@ -118,8 +118,6 @@ a-scene {
 
 <body class="bg-black text-white">
 
-<!-- ====================== HUD ====================== -->
-
 <div id="ui-overlay"
  class="fixed inset-0 z-50 pointer-events-none flex flex-col justify-between p-6 scuba-vignette">
 
@@ -153,8 +151,6 @@ a-scene {
     </div>
 
   </div>
-
-  <!-- ORIGINAL INTRODUCTION -->
 
   <div id="start-screen"
    class="pointer-events-auto self-center text-center max-w-md bg-slate-950/95 border border-cyan-500/50 p-8 rounded-2xl">
@@ -208,14 +204,10 @@ a-scene {
 
 </div>
 
-<!-- DEPTH MILESTONES -->
-
 <div id="depth-announcement">
   <div id="announcement-title"></div>
   <div id="announcement-subtitle"></div>
 </div>
-
-<!-- ENDING -->
 
 <div id="attack-flash"></div>
 
@@ -236,8 +228,6 @@ a-scene {
 
   <button id="ending-restart">RETURN TO SURFACE</button>
 </div>
-
-<!-- ====================== 3D WORLD ====================== -->
 
 <a-scene
  embedded
@@ -261,16 +251,12 @@ a-scene {
 
   <a-sky id="ocean-sky" color="#88ccff"></a-sky>
 
-  <!-- RESTORED VISIBLE SUN -->
-
   <a-sphere
    id="surface-sun"
    position="0 95 -220"
    radius="24"
-   material="shader:flat;color:#ffcc00;fog:false">
+   material="shader:flat;color:#ffcc00;fog:false;transparent:true;opacity:1">
   </a-sphere>
-
-  <!-- PLAYER -->
 
   <a-entity id="rig" position="0 7 0">
 
@@ -293,8 +279,6 @@ a-scene {
 
       <a-entity id="player-bubbles"></a-entity>
 
-      <!-- PRESERVED MOVING ARMS -->
-
       <a-entity id="arm-anchor">
         <a-entity
          id="diver-arms"
@@ -308,8 +292,6 @@ a-scene {
 
   </a-entity>
 
-  <!-- WATER SURFACE -->
-
   <a-entity
    id="water-surface"
    geometry="primitive:plane;width:1000;height:1000"
@@ -318,11 +300,7 @@ a-scene {
    material="shader:flat;color:#21a6c9;transparent:true;opacity:.72;side:double;depthWrite:false">
   </a-entity>
 
-  <!-- ANIMALS -->
-
   <a-entity id="dynamic-creatures"></a-entity>
-
-  <!-- FINAL CREATURE -->
 
   <a-entity id="monster" visible="false">
 
@@ -369,18 +347,14 @@ const THREE = AFRAME.THREE;
 
 const SETTINGS = {
   maxDepth: 200,
-
-  // Starts slowly, then accelerates.
   initialSpeed: 1.0,
   finalSpeed: 2.4,
-
   submergeDepth: 3.5,
 
   armLength: 1.58,
   armSpread: 0.21,
   shoulderY: -1.12,
   shoulderZ: -0.12,
-
   armFloat: 0.095,
   armSway: 0.055,
   headPitchCompensation: 0.56,
@@ -388,8 +362,13 @@ const SETTINGS = {
   handBubbleInterval: 115,
   handBubbleCount: 4,
 
-  // Surface seagulls louder.
-  seagullVolume: 0.75
+  seagullVolume: 0.75,
+
+  // Increased heartbeat/breathing.
+  heartbeatBase: 0.9,
+  heartbeatDeep: 1.8,
+  breathingBase: 0.5,
+  breathingDeep: 1.25
 };
 
 const AUDIO_FILES = {
@@ -399,10 +378,6 @@ const AUDIO_FILES = {
   dolphin: 'freesound_community-dolphin-noise-6968.mp3',
   whale: 'dragon-studio-humpback-whale-382727.mp3'
 };
-
-// =====================================================
-// ELEMENTS
-// =====================================================
 
 const $ = id => document.getElementById(id);
 
@@ -431,10 +406,6 @@ const random = (a,b) => a + Math.random() * (b-a);
 const vec = (x=0,y=0,z=0) =>
   new THREE.Vector3(x,y,z);
 
-// =====================================================
-// GAME STATE
-// =====================================================
-
 let depth = 0;
 let diving = false;
 let ended = false;
@@ -449,6 +420,9 @@ let announcementTimeout = null;
 
 const milestones = new Set();
 const creatures = [];
+
+let whaleRevealUntil = 0;
+let whaleRevealStarted = 0;
 
 const armState = {
   ready:false,
@@ -473,16 +447,19 @@ const audioLoops = {};
 const audioGains = {};
 
 function makeNoiseBuffer(seconds=3) {
-  const length = Math.floor(audioCtx.sampleRate * seconds);
-  const buffer = audioCtx.createBuffer(1,length,audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
+  const length = Math.floor(audioCtx.sampleRate*seconds);
+  const buffer = audioCtx.createBuffer(
+    1,length,audioCtx.sampleRate
+  );
 
-  let previous = 0;
+  const data = buffer.getChannelData(0);
+  let previous=0;
 
   for(let i=0;i<length;i++){
-    previous =
-      (previous + (Math.random()*2-1)*0.08)/1.08;
-    data[i] = previous*3;
+    previous=
+      (previous+(Math.random()*2-1)*.08)/1.08;
+
+    data[i]=previous*3;
   }
 
   return buffer;
@@ -490,38 +467,42 @@ function makeNoiseBuffer(seconds=3) {
 
 async function loadRecording(name) {
   try {
-    const response = await fetch(AUDIO_FILES[name]);
+    const response=await fetch(AUDIO_FILES[name]);
 
     if(!response.ok) {
       throw new Error('HTTP '+response.status);
     }
 
-    audioBuffers[name] = await audioCtx.decodeAudioData(
+    audioBuffers[name]=await audioCtx.decodeAudioData(
       await response.arrayBuffer()
     );
   } catch(error) {
-    console.warn('Could not load audio:',AUDIO_FILES[name],error);
+    console.warn(
+      'Could not load audio:',
+      AUDIO_FILES[name],
+      error
+    );
   }
 }
 
 function startLoop(name,initialVolume) {
   if(!audioBuffers[name]) return;
 
-  const source = audioCtx.createBufferSource();
-  const gain = audioCtx.createGain();
+  const source=audioCtx.createBufferSource();
+  const gain=audioCtx.createGain();
 
-  source.buffer = audioBuffers[name];
-  source.loop = true;
+  source.buffer=audioBuffers[name];
+  source.loop=true;
 
-  gain.gain.value = initialVolume;
+  gain.gain.value=initialVolume;
 
   source.connect(gain);
   gain.connect(masterGain);
 
   source.start();
 
-  audioLoops[name] = source;
-  audioGains[name] = gain;
+  audioLoops[name]=source;
+  audioGains[name]=gain;
 }
 
 async function initAudio() {
@@ -530,40 +511,36 @@ async function initAudio() {
     return;
   }
 
-  audioCtx = new (
-    window.AudioContext ||
+  audioCtx=new (
+    window.AudioContext||
     window.webkitAudioContext
   )();
 
-  masterGain = audioCtx.createGain();
-  masterGain.gain.value = muted ? 0 : 0.85;
+  masterGain=audioCtx.createGain();
+  masterGain.gain.value=muted?0:.85;
 
-  const compressor = audioCtx.createDynamicsCompressor();
-  compressor.threshold.value = -18;
-  compressor.ratio.value = 5;
+  const compressor=audioCtx.createDynamicsCompressor();
+  compressor.threshold.value=-18;
+  compressor.ratio.value=5;
 
   masterGain.connect(compressor);
   compressor.connect(audioCtx.destination);
 
-  // Soft water texture.
+  const noise=audioCtx.createBufferSource();
+  noise.buffer=makeNoiseBuffer(4);
+  noise.loop=true;
 
-  const noise = audioCtx.createBufferSource();
-  noise.buffer = makeNoiseBuffer(4);
-  noise.loop = true;
+  waterFilter=audioCtx.createBiquadFilter();
+  waterFilter.type='lowpass';
+  waterFilter.frequency.value=600;
 
-  waterFilter = audioCtx.createBiquadFilter();
-  waterFilter.type = 'lowpass';
-  waterFilter.frequency.value = 600;
-
-  waterGain = audioCtx.createGain();
-  waterGain.gain.value = 0.012;
+  waterGain=audioCtx.createGain();
+  waterGain.gain.value=.012;
 
   noise.connect(waterFilter);
   waterFilter.connect(waterGain);
   waterGain.connect(masterGain);
   noise.start();
-
-  // Load the recordings.
 
   await Promise.all(
     Object.keys(AUDIO_FILES).map(loadRecording)
@@ -579,14 +556,14 @@ async function initAudio() {
 function updateAudio() {
   if(!audioCtx) return;
 
-  const now = audioCtx.currentTime;
+  const now=audioCtx.currentTime;
 
-  const underwater = clamp(
+  const underwater=clamp(
     (depth-SETTINGS.submergeDepth)/2,
     0,1
   );
 
-  const pressure = clamp(depth/200,0,1);
+  const pressure=clamp(depth/200,0,1);
 
   function fade(name,value,time=.4) {
     if(!audioGains[name]) return;
@@ -596,23 +573,48 @@ function updateAudio() {
     );
   }
 
-  // Seagulls disappear after submersion.
   fade(
     'seagulls',
     SETTINGS.seagullVolume*(1-underwater),
     .45
   );
 
-  // Breathing and heartbeat intensify.
+  // Louder breathing, increasingly frantic.
   fade(
     'breathing',
-    underwater*(.15+pressure*.40)
+    underwater*(
+      SETTINGS.breathingBase+
+      pressure*SETTINGS.breathingDeep
+    ),
+    .3
   );
 
+  // Stronger heartbeat as pressure increases.
   fade(
     'heartbeat',
-    underwater*(.32+pressure*.65)
+    underwater*(
+      SETTINGS.heartbeatBase+
+      pressure*SETTINGS.heartbeatDeep
+    ),
+    .3
   );
+
+  // Heartbeat speeds up a little at depth.
+  if(audioLoops.heartbeat) {
+    audioLoops.heartbeat.playbackRate.setTargetAtTime(
+      1+pressure*.35,
+      now,
+      .7
+    );
+  }
+
+  if(audioLoops.breathing) {
+    audioLoops.breathing.playbackRate.setTargetAtTime(
+      1+pressure*.28,
+      now,
+      .7
+    );
+  }
 
   waterGain.gain.setTargetAtTime(
     .012+underwater*(.10+pressure*.10),
@@ -628,15 +630,15 @@ function updateAudio() {
 function playWaterRush(duration=1.6,volume=.4) {
   if(!audioCtx) return;
 
-  const now = audioCtx.currentTime;
+  const now=audioCtx.currentTime;
 
-  const source = audioCtx.createBufferSource();
-  const filter = audioCtx.createBiquadFilter();
-  const gain = audioCtx.createGain();
+  const source=audioCtx.createBufferSource();
+  const filter=audioCtx.createBiquadFilter();
+  const gain=audioCtx.createGain();
 
-  source.buffer = makeNoiseBuffer(duration+.1);
+  source.buffer=makeNoiseBuffer(duration+.1);
 
-  filter.type = 'lowpass';
+  filter.type='lowpass';
 
   filter.frequency.setValueAtTime(1800,now);
   filter.frequency.exponentialRampToValueAtTime(
@@ -660,35 +662,93 @@ function playWaterRush(duration=1.6,volume=.4) {
 }
 
 // =====================================================
-// POSITIONAL ANIMAL AUDIO
+// MANTA RAY UNDERWATER WHOOSH
+// =====================================================
+
+function playMantaWhoosh(creature) {
+  if(!audioCtx) return;
+
+  const now=audioCtx.currentTime;
+
+  const source=audioCtx.createBufferSource();
+  const filter=audioCtx.createBiquadFilter();
+  const gain=audioCtx.createGain();
+  const panner=audioCtx.createPanner();
+
+  source.buffer=makeNoiseBuffer(3);
+
+  filter.type='bandpass';
+  filter.Q.value=.65;
+
+  filter.frequency.setValueAtTime(110,now);
+  filter.frequency.exponentialRampToValueAtTime(
+    480,now+1.1
+  );
+  filter.frequency.exponentialRampToValueAtTime(
+    90,now+2.8
+  );
+
+  gain.gain.setValueAtTime(.001,now);
+  gain.gain.exponentialRampToValueAtTime(
+    .24,now+.8
+  );
+  gain.gain.exponentialRampToValueAtTime(
+    .001,now+2.8
+  );
+
+  panner.panningModel='HRTF';
+  panner.distanceModel='inverse';
+  panner.refDistance=15;
+  panner.rolloffFactor=.6;
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(panner);
+  panner.connect(masterGain);
+
+  creature.sound={source,panner,gain};
+
+  source.onended=()=>{
+    if(creature.sound?.source===source) {
+      creature.sound=null;
+    }
+    panner.disconnect();
+    gain.disconnect();
+  };
+
+  source.start();
+  source.stop(now+2.9);
+}
+
+// =====================================================
+// ANIMAL AUDIO
 // =====================================================
 
 function playAnimalSound(type,creature) {
-  if(!audioCtx || !audioBuffers[type]) return;
+  if(!audioCtx||!audioBuffers[type]) return;
 
-  const source = audioCtx.createBufferSource();
-  const gain = audioCtx.createGain();
-  const panner = audioCtx.createPanner();
+  const source=audioCtx.createBufferSource();
+  const gain=audioCtx.createGain();
+  const panner=audioCtx.createPanner();
 
-  source.buffer = audioBuffers[type];
+  source.buffer=audioBuffers[type];
 
-  gain.gain.value = type==='whale' ? 1.1 : .95;
+  gain.gain.value=type==='whale'?1.1:.95;
 
-  panner.panningModel = 'HRTF';
-  panner.distanceModel = 'inverse';
-  panner.refDistance = 15;
-  panner.rolloffFactor = .7;
-  panner.maxDistance = 100;
+  panner.panningModel='HRTF';
+  panner.distanceModel='inverse';
+  panner.refDistance=15;
+  panner.rolloffFactor=.7;
+  panner.maxDistance=100;
 
   source.connect(gain);
   gain.connect(panner);
   panner.connect(masterGain);
 
-  creature.sound = {source,panner,gain};
+  creature.sound={source,panner,gain};
 
-  source.onended = () => {
-    if(creature.sound &&
-       creature.sound.source===source) {
+  source.onended=()=>{
+    if(creature.sound?.source===source) {
       creature.sound=null;
     }
     panner.disconnect();
@@ -703,29 +763,29 @@ function updateSpatialAudio() {
 
   sceneEl.object3D.updateMatrixWorld(true);
 
-  const position = vec();
-  const quaternion = new THREE.Quaternion();
+  const position=vec();
+  const quaternion=new THREE.Quaternion();
 
   camera.object3D.getWorldPosition(position);
   camera.object3D.getWorldQuaternion(quaternion);
 
-  const forward = vec(0,0,-1).applyQuaternion(quaternion);
-  const up = vec(0,1,0).applyQuaternion(quaternion);
+  const forward=vec(0,0,-1).applyQuaternion(quaternion);
+  const up=vec(0,1,0).applyQuaternion(quaternion);
 
-  const listener = audioCtx.listener;
+  const listener=audioCtx.listener;
 
   if(listener.positionX) {
-    listener.positionX.value = position.x;
-    listener.positionY.value = position.y;
-    listener.positionZ.value = position.z;
+    listener.positionX.value=position.x;
+    listener.positionY.value=position.y;
+    listener.positionZ.value=position.z;
 
-    listener.forwardX.value = forward.x;
-    listener.forwardY.value = forward.y;
-    listener.forwardZ.value = forward.z;
+    listener.forwardX.value=forward.x;
+    listener.forwardY.value=forward.y;
+    listener.forwardZ.value=forward.z;
 
-    listener.upX.value = up.x;
-    listener.upY.value = up.y;
-    listener.upZ.value = up.z;
+    listener.upX.value=up.x;
+    listener.upY.value=up.y;
+    listener.upZ.value=up.z;
   }
 
   for(const creature of creatures) {
@@ -733,7 +793,7 @@ function updateSpatialAudio() {
 
     creature.entity.object3D.getWorldPosition(position);
 
-    const p = creature.sound.panner;
+    const p=creature.sound.panner;
 
     if(p.positionX) {
       p.positionX.value=position.x;
@@ -746,12 +806,12 @@ function updateSpatialAudio() {
 }
 
 // =====================================================
-// ARMS — KEEP THE ESTABLISHED POSE
+// ARMS
 // =====================================================
 
 arms.addEventListener('model-loaded',()=>{
 
-  const model = arms.getObject3D('mesh');
+  const model=arms.getObject3D('mesh');
   if(!model) return;
 
   const bones={};
@@ -764,11 +824,11 @@ arms.addEventListener('model-loaded',()=>{
       object.frustumCulled=false;
 
       const materials=Array.isArray(object.material)
-        ? object.material
-        : [object.material];
+        ?object.material:[object.material];
 
       materials.forEach(material=>{
         if(!material) return;
+
         material.side=THREE.DoubleSide;
 
         if(material.color) {
@@ -784,7 +844,10 @@ arms.addEventListener('model-loaded',()=>{
   const RH=bones.hand_r_022;
 
   if(!LS||!RS||!LH||!RH) {
-    console.error('Expected arm bones missing',Object.keys(bones));
+    console.error(
+      'Expected arm bones missing',
+      Object.keys(bones)
+    );
     return;
   }
 
@@ -816,7 +879,9 @@ arms.addEventListener('model-loaded',()=>{
     .makeBasis(across,up,front);
 
   const rotation=new THREE.Quaternion()
-    .setFromRotationMatrix(sourceBasis.clone().invert());
+    .setFromRotationMatrix(
+      sourceBasis.clone().invert()
+    );
 
   arms.object3D.quaternion.copy(rotation);
 
@@ -825,6 +890,7 @@ arms.addEventListener('model-loaded',()=>{
   )/2;
 
   const scale=SETTINGS.armLength/Math.max(length,.001);
+
   arms.object3D.scale.setScalar(scale);
 
   const rotatedMid=shoulderMid.clone()
@@ -841,6 +907,7 @@ arms.addEventListener('model-loaded',()=>{
   RS.rotateZ(SETTINGS.armSpread);
 
   armState.shoulders=[LS,RS];
+
   armState.originals=[
     LS.quaternion.clone(),
     RS.quaternion.clone()
@@ -848,8 +915,6 @@ arms.addEventListener('model-loaded',()=>{
 
   armState.hands=[LH,RH];
   armState.basePosition=arms.object3D.position.clone();
-
-  // Cover visible open shoulder ends.
 
   const geometry=new THREE.CylinderGeometry(
     .16,.27,.8,16
@@ -864,6 +929,7 @@ arms.addEventListener('model-loaded',()=>{
   for(let i=0;i<2;i++){
     const extension=new THREE.Mesh(geometry,material);
     extension.frustumCulled=false;
+
     armAnchor.object3D.add(extension);
     armState.extensions.push(extension);
   }
@@ -905,7 +971,7 @@ function animateArms(time) {
 
   const pitch=camera.object3D.rotation.x;
 
-  armAnchor.object3D.rotation.x =
+  armAnchor.object3D.rotation.x=
     -pitch*SETTINGS.headPitchCompensation;
 
   const lookingDown=Math.max(0,-pitch);
@@ -956,11 +1022,8 @@ function animateArms(time) {
 
   updateShoulderExtensions();
 
-  // Bubbles only once underwater.
-
   if(
-    diving &&
-    submerged &&
+    diving&&submerged&&
     time*1000-lastHandBubbleTime>
       SETTINGS.handBubbleInterval
   ) {
@@ -975,7 +1038,7 @@ function animateArms(time) {
 }
 
 // =====================================================
-// HAND BUBBLES
+// BUBBLES
 // =====================================================
 
 function spawnHandBubble(hand) {
@@ -989,7 +1052,6 @@ function spawnHandBubble(hand) {
   p.z+=random(-.1,.1);
 
   const bubble=document.createElement('a-sphere');
-
   const duration=random(900,1700);
 
   bubble.setAttribute('radius',random(.015,.035));
@@ -1018,10 +1080,6 @@ function spawnHandBubble(hand) {
 
   setTimeout(()=>bubble.remove(),duration+100);
 }
-
-// =====================================================
-// BREATHING BUBBLES
-// =====================================================
 
 let nextBreath=0;
 
@@ -1086,10 +1144,10 @@ function createMarineSnow() {
 }
 
 // =====================================================
-// RESTORED OCEAN COLOR AND SUNLIGHT
+// ENVIRONMENT AND WHALE REVEAL
 // =====================================================
 
-function updateEnvironment() {
+function updateEnvironment(now) {
   const d=depth;
 
   let color;
@@ -1147,6 +1205,29 @@ function updateEnvironment() {
     zone='Phase 4: The Abyss (The Deep Void)';
   }
 
+  // Brief blue illumination to reveal the humpback.
+  // It fades in and out rather than snapping on.
+
+  let reveal=0;
+
+  if(now<whaleRevealUntil) {
+    const elapsed=(now-whaleRevealStarted)/1000;
+    const total=(whaleRevealUntil-whaleRevealStarted)/1000;
+
+    reveal=Math.min(
+      clamp(elapsed/2,0,1),
+      clamp((total-elapsed)/3,0,1)
+    );
+  }
+
+  ambientPower+=reveal*.75;
+  fog=Math.max(.008,fog-reveal*.022);
+
+  color.lerp(
+    new THREE.Color('#0a4160'),
+    reveal*.65
+  );
+
   const hex='#'+color.getHexString();
 
   sky.setAttribute('color',hex);
@@ -1165,31 +1246,18 @@ function updateEnvironment() {
     d>110?clamp((d-110)/55,0,.65):0
   );
 
-  // Sun gradually disappears instead of abruptly vanishing.
-
   const sunOpacity=clamp(1-d/75,0,1);
 
-  sun.setAttribute(
-    'material',
-    'opacity',
-    sunOpacity
-  );
+  sun.setAttribute('material','opacity',sunOpacity);
+  sun.setAttribute('visible',sunOpacity>.005);
 
-  sun.setAttribute(
-    'visible',
-    sunOpacity>.005
-  );
-
-  $('water-surface').setAttribute(
-    'visible',
-    d<14
-  );
+  $('water-surface').setAttribute('visible',d<14);
 
   zoneDisplay.textContent=zone;
 }
 
 // =====================================================
-// DEPTH ANNOUNCEMENTS
+// ANNOUNCEMENTS
 // =====================================================
 
 function announce(title,subtitle) {
@@ -1197,7 +1265,6 @@ function announce(title,subtitle) {
   $('announcement-subtitle').textContent=subtitle;
 
   const element=$('depth-announcement');
-
   element.style.opacity='1';
 
   clearTimeout(announcementTimeout);
@@ -1207,18 +1274,11 @@ function announce(title,subtitle) {
   },3500);
 }
 
-function milestone(key,at,title,subtitle) {
-  if(depth<at||milestones.has(key)) return;
-
-  milestones.add(key);
-  announce(title,subtitle);
-}
-
 // =====================================================
-// CREATURE MODELS
+// CREATURES
 // =====================================================
 
-const ANIMALS = {
+const ANIMALS={
   fish:{
     file:'school_of_herring.glb',
     scale:5,
@@ -1232,7 +1292,8 @@ const ANIMALS = {
     scale:.3,
     duration:23000,
     clearance:15,
-    size:8
+    size:8,
+    sound:'manta'
   },
 
   dolphin:{
@@ -1248,7 +1309,7 @@ const ANIMALS = {
     file:'whale.glb',
     scale:3,
     duration:35000,
-    clearance:36,
+    clearance:30,
     size:20,
     sound:'whale',
     flip:true
@@ -1258,15 +1319,11 @@ const ANIMALS = {
     file:'blue_whale.glb',
     scale:5,
     duration:40000,
-    clearance:48,
+    clearance:45,
     size:28,
     sound:'whale'
   }
 };
-
-// =====================================================
-// CONTROLLED CREATURE PROGRESSION
-// =====================================================
 
 function selectAnimal() {
   const r=Math.random();
@@ -1292,10 +1349,7 @@ function selectAnimal() {
 }
 
 // =====================================================
-// ANIMAL MOVEMENT
-//
-// Restores the older peripheral swim-by feeling.
-// Creatures stay at a safe distance from the camera.
+// SPAWN ANIMALS BEHIND US UNTIL IT IS DARK
 // =====================================================
 
 function spawnCreature(forcedType=null) {
@@ -1325,57 +1379,49 @@ function spawnCreature(forcedType=null) {
   entity.appendChild(model);
   creatureContainer.appendChild(entity);
 
-  // Spawn in the general direction the player can see,
-  // but offset to the left or right like the older code.
-
   const cameraWorld=vec();
   const quaternion=new THREE.Quaternion();
 
   camera.object3D.getWorldPosition(cameraWorld);
   camera.object3D.getWorldQuaternion(quaternion);
 
-  const horizontalForward=vec(0,0,-1)
+  const forward=vec(0,0,-1)
     .applyQuaternion(quaternion);
 
-  horizontalForward.y=0;
+  forward.y=0;
+  forward.normalize();
 
-  if(horizontalForward.lengthSq()<.001) {
-    horizontalForward.set(0,0,-1);
-  }
-
-  horizontalForward.normalize();
-
-  const side=vec(
-    -horizontalForward.z,
-    0,
-    horizontalForward.x
-  );
-
+  const side=vec(-forward.z,0,forward.x);
   const sideSign=Math.random()<.5?-1:1;
 
   const safeDistance=config.clearance+config.size;
 
-  // The whole route is on one side of the player.
-  // No straight line through the camera.
+  const start=cameraWorld.clone();
+  const end=cameraWorld.clone();
 
-  const start=cameraWorld.clone()
-    .addScaledVector(horizontalForward,random(32,52))
-    .addScaledVector(side,sideSign*safeDistance);
+  if(depth<140) {
+    // Behind the diver, then swim across the periphery.
+    // This avoids the conspicuous front-facing fade-in.
 
-  start.y+=random(-7,5);
+    start.addScaledVector(forward,-random(35,55));
+    start.addScaledVector(side,sideSign*safeDistance);
 
-  const end=cameraWorld.clone()
-    .addScaledVector(horizontalForward,random(-45,-28))
-    .addScaledVector(side,sideSign*safeDistance);
+    end.addScaledVector(forward,random(30,50));
+    end.addScaledVector(side,sideSign*safeDistance);
 
-  end.y=start.y+random(-4,4);
+  } else {
+    // At depth, darkness hides distant arrival.
+    // Keep creatures off the centerline.
 
-  // At deeper depths, bring creatures into a visible
-  // range while retaining their sideways clearance.
+    start.addScaledVector(forward,random(38,60));
+    start.addScaledVector(side,sideSign*safeDistance);
 
-  if(type==='whale'||type==='blueWhale') {
-    start.addScaledVector(horizontalForward,12);
+    end.addScaledVector(forward,-random(30,50));
+    end.addScaledVector(side,sideSign*safeDistance);
   }
+
+  start.y+=random(-5,5);
+  end.y=start.y+random(-4,4);
 
   entity.object3D.position.copy(start);
 
@@ -1383,7 +1429,6 @@ function spawnCreature(forcedType=null) {
   direction.y=0;
   direction.normalize();
 
-  // Face along the swim path.
   const heading=Math.atan2(
     direction.x,
     direction.z
@@ -1420,11 +1465,11 @@ function spawnCreature(forcedType=null) {
       object.frustumCulled=false;
 
       const materials=Array.isArray(object.material)
-        ? object.material
-        : [object.material];
+        ?object.material:[object.material];
 
       const copies=materials.map(material=>{
         const copy=material.clone();
+
         copy.transparent=true;
         copy.opacity=0;
         copy.depthWrite=false;
@@ -1433,18 +1478,18 @@ function spawnCreature(forcedType=null) {
           material:copy,
           originalOpacity:
             material.opacity===undefined
-              ? 1
-              : material.opacity
+              ?1:material.opacity
         });
 
         return copy;
       });
 
       object.material=Array.isArray(object.material)
-        ? copies
-        : copies[0];
+        ?copies:copies[0];
     });
   });
+
+  return creature;
 }
 
 function updateCreatures(now) {
@@ -1466,9 +1511,13 @@ function updateCreatures(now) {
       t
     );
 
-    // Fade in, remain visible, then fade out.
-    const fadeIn=clamp(t/.17,0,1);
-    const fadeOut=clamp((1-t)/.17,0,1);
+    // Behind-us creatures fade in very quickly,
+    // while deep creatures emerge more gradually.
+
+    const fadeDuration=depth<140?.05:.20;
+
+    const fadeIn=clamp(t/fadeDuration,0,1);
+    const fadeOut=clamp((1-t)/.14,0,1);
 
     const opacity=Math.min(fadeIn,fadeOut);
 
@@ -1480,7 +1529,6 @@ function updateCreatures(now) {
     const distance=creature.entity.object3D.position
       .distanceTo(player);
 
-    // Only play the animal's sound when nearby.
     if(
       !creature.soundPlayed &&
       creature.config.sound &&
@@ -1488,10 +1536,14 @@ function updateCreatures(now) {
     ) {
       creature.soundPlayed=true;
 
-      playAnimalSound(
-        creature.config.sound,
-        creature
-      );
+      if(creature.config.sound==='manta') {
+        playMantaWhoosh(creature);
+      } else {
+        playAnimalSound(
+          creature.config.sound,
+          creature
+        );
+      }
     }
 
     if(t>=1) {
@@ -1502,10 +1554,11 @@ function updateCreatures(now) {
 }
 
 // =====================================================
-// CREATURE MILESTONES
+// MILESTONES
 // =====================================================
 
-function updateMilestones() {
+function updateMilestones(now) {
+
   if(depth>=SETTINGS.submergeDepth&&!milestones.has('fish')) {
     milestones.add('fish');
 
@@ -1548,6 +1601,9 @@ function updateMilestones() {
       'An enormous presence passes through the darkness.'
     );
 
+    whaleRevealStarted=now;
+    whaleRevealUntil=now+18000;
+
     spawnCreature('whale');
   }
 
@@ -1564,7 +1620,7 @@ function updateMilestones() {
 }
 
 // =====================================================
-// ATTACK ENDING
+// ATTACK
 // =====================================================
 
 function attack() {
@@ -1599,7 +1655,6 @@ function attack() {
   playWaterRush(1.5,1.0);
 
   const flash=$('attack-flash');
-
   flash.style.opacity='.9';
 
   setTimeout(()=>{
@@ -1640,6 +1695,9 @@ function resetDive() {
   nextCreatureTime=0;
   nextBreath=0;
 
+  whaleRevealUntil=0;
+  whaleRevealStarted=0;
+
   milestones.clear();
 
   for(const creature of creatures) {
@@ -1663,10 +1721,9 @@ function resetDive() {
   $('attack-flash').style.background='#d4f5ff';
 
   $('monster').setAttribute('visible',false);
-
   $('depth-announcement').style.opacity='0';
 
-  updateEnvironment();
+  updateEnvironment(performance.now());
   updateAudio();
 
   if(masterGain&&audioCtx) {
@@ -1686,8 +1743,8 @@ function animate(now) {
   requestAnimationFrame(animate);
 
   const dt=lastFrame
-    ? Math.min((now-lastFrame)/1000,.1)
-    : 0;
+    ?Math.min((now-lastFrame)/1000,.1)
+    :0;
 
   lastFrame=now;
 
@@ -1695,7 +1752,6 @@ function animate(now) {
 
   if(diving&&!ended) {
 
-    // Accelerates naturally as you sink.
     const ratio=clamp(depth/200,0,1);
 
     const speed=
@@ -1714,10 +1770,8 @@ function animate(now) {
 
     statusDisplay.textContent=
       depth<SETTINGS.submergeDepth
-        ? 'ENTERING WATER'
-        : 'SINKING UNCONTROLLABLY...';
-
-    // One-time submersion transition.
+        ?'ENTERING WATER'
+        :'SINKING UNCONTROLLABLY...';
 
     if(
       !submerged &&
@@ -1727,9 +1781,9 @@ function animate(now) {
       playWaterRush(2,.5);
     }
 
-    updateEnvironment();
+    updateEnvironment(now);
     updateAudio();
-    updateMilestones();
+    updateMilestones(now);
 
     if(submerged&&now>=nextBreath) {
       spawnBreathBubble();
@@ -1816,7 +1870,7 @@ if(sceneEl.hasLoaded) {
   );
 }
 
-updateEnvironment();
+updateEnvironment(performance.now());
 requestAnimationFrame(animate);
 
 </script>
