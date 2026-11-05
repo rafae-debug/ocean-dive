@@ -159,7 +159,7 @@ a-scene {
     </button>
 
     <p class="text-slate-500 text-xs mt-4">
-      Mouse / VR headset supported
+      Mouse / VR headset supported. Start the dive, then select ENTER VR.
     </p>
 
   </div>
@@ -171,6 +171,7 @@ a-scene {
     </div>
 
     <div class="flex gap-2 pointer-events-auto ml-auto">
+      <button id="enter-vr-btn" class="bg-cyan-800 border border-cyan-400/60 px-4 py-2 rounded-lg text-xs font-bold">👓 ENTER VR</button>
 
       <button id="sound-toggle-btn"
               class="bg-slate-900 border border-cyan-500/40 px-4 py-2 rounded-lg text-xs">
@@ -1143,9 +1144,9 @@ const ANIMALS = {
     file:'school_of_herring.glb',
     scale:5,
     duration:90000,
-    distance:[5,9],
+    distance:[4.5,7],
     sound:null,
-    desiredSize:4.5,
+    desiredSize:3.2,
     maxSize:8
   },
 
@@ -1153,9 +1154,9 @@ const ANIMALS = {
     file:'ray.glb',
     scale:.3,
     duration:30000,
-    distance:[9,16],
+    distance:[7,11],
     sound:'manta',
-    desiredSize:5,
+    desiredSize:4.2,
     maxSize:8
   },
 
@@ -1163,7 +1164,7 @@ const ANIMALS = {
     file:'dolphin.glb',
     scale:45,
     duration:20000,
-    distance:[13,23],
+    distance:[10,15],
     sound:'dolphin',
     desiredSize:4,
     maxSize:6
@@ -1173,9 +1174,9 @@ const ANIMALS = {
     file:'whale.glb',
     scale:3,
     duration:45000,
-    distance:[20,32],
+    distance:[14,21],
     sound:'whale',
-    desiredSize:20,
+    desiredSize:17,
     maxSize:30,
     reverseTravel:true
   },
@@ -1184,9 +1185,9 @@ const ANIMALS = {
     file:'blue_whale.glb',
     scale:5,
     duration:60000,
-    distance:[24,36],
+    distance:[18,25],
     sound:'whale',
-    desiredSize:25,
+    desiredSize:21,
     maxSize:35,
     reverseTravel:true
   }
@@ -1328,6 +1329,30 @@ function loadAnimalModel(creature) {
       root.updateMatrixWorld(true);
     }
 
+    // Center model geometry on the entity origin. GLBs may have wildly
+    // displaced origins, which previously made nearby creatures invisible.
+    root.updateMatrixWorld(true);
+    const finalBounds = new THREE.Box3().setFromObject(root);
+    const center = finalBounds.getCenter(new THREE.Vector3());
+    // Convert the bounding-box center to the model parent's local coordinates.
+    const centerLocal = model.object3D.worldToLocal(center.clone());
+    root.position.sub(centerLocal);
+    root.updateMatrixWorld(true);
+
+    // Check actual transformed model bounds, not just its entity origin.
+    // Keep the top of every model beneath the world-space surface at Y=4.
+    const actualBounds = new THREE.Box3().setFromObject(root);
+    const actualTop = actualBounds.max.y;
+    if (Number.isFinite(actualTop)) {
+      const maxTravelY = Math.max(creature.start.y,creature.end.y);
+      const overflow = maxTravelY + actualTop - 3.4;
+      if (overflow > 0) {
+        creature.start.y -= overflow;
+        creature.end.y -= overflow;
+        creature.entity.object3D.position.copy(creature.start);
+      }
+    }
+
     // No opacity-zero materials.
     // No fade-in hiding the fish.
 
@@ -1413,7 +1438,7 @@ function spawnCreature(forcedType=null) {
   // Spawn only 25–45 degrees off-center.
   // This is much more visible than 60–80 degrees.
 
-  const angle = random(.42,.78);
+  const angle = random(.34,.64);
 
   const radial = forward.clone()
     .multiplyScalar(Math.cos(angle))
@@ -1431,16 +1456,20 @@ function spawnCreature(forcedType=null) {
   let verticalOffset;
 
   if(type==='fish') {
-    verticalOffset = random(-1.5,-.1);
+    verticalOffset = random(-3.8,-2.4);
   } else if(type==='ray') {
-    verticalOffset = random(-3.5,-1);
+    verticalOffset = random(-4.5,-2.8);
   } else if(type==='dolphin') {
-    verticalOffset = random(-4,-1);
+    verticalOffset = random(-4.8,-3);
   } else {
-    verticalOffset = random(-5,-2);
+    verticalOffset = random(-7,-4);
   }
 
   start.y += verticalOffset;
+  // Water surface is world Y=4. Keep the entire creature safely below it.
+  // The final model bounds are checked again after the GLB loads.
+  start.y = Math.min(start.y, 4 - config.desiredSize * .85 - .6);
+
 
   // Swim sideways across peripheral vision,
   // rather than disappearing directly away.
@@ -1454,9 +1483,9 @@ function spawnCreature(forcedType=null) {
   // Animals cross the visual field ahead of us.
 
   const lateralTravel =
-    type==='fish' ? 10 :
-    type==='ray' ? 18 :
-    type==='dolphin' ? 24 : 32;
+    type==='fish' ? 8 :
+    type==='ray' ? 12 :
+    type==='dolphin' ? 15 : 20;
 
   const end = start.clone()
     .addScaledVector(
@@ -1469,10 +1498,10 @@ function spawnCreature(forcedType=null) {
 
   end.addScaledVector(
     forward,
-    type==='fish' ? 2 : 7
+    type==='fish' ? 2 : 5
   );
 
-  end.y = start.y+random(-1,0);
+  end.y = Math.min(start.y+random(-.7,0), 4-config.desiredSize*.85-.6);
 
   // Whale moves in the OPPOSITE direction.
 
@@ -1899,6 +1928,26 @@ $('sound-toggle-btn').addEventListener('click',()=>{
   }
 });
 
+// A-Frame's native enterVR() supports immersive headsets and compatible mobile VR.
+// On unsupported browsers it reports the error without interrupting the dive.
+$('enter-vr-btn').addEventListener('click', async () => {
+  try {
+    if (sceneEl.is('vr-mode')) {
+      await sceneEl.exitVR();
+    } else {
+      await sceneEl.enterVR();
+    }
+  } catch (error) {
+    console.warn('VR mode unavailable:',error);
+    alert('VR is not available in this browser/device. Try a WebXR-capable browser or headset.');
+  }
+});
+sceneEl.addEventListener('enter-vr',()=>{
+  $('enter-vr-btn').textContent = 'EXIT VR';
+});
+sceneEl.addEventListener('exit-vr',()=>{
+  $('enter-vr-btn').textContent = '👓 ENTER VR';
+});
 $('recenter-btn').addEventListener('click',resetDive);
 $('ending-restart').addEventListener('click',resetDive);
 
