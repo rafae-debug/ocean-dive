@@ -171,7 +171,10 @@ a-scene {
     </div>
 
     <div class="flex gap-2 pointer-events-auto ml-auto">
-      <button id="enter-vr-btn" class="bg-cyan-800 border border-cyan-400/60 px-4 py-2 rounded-lg text-xs font-bold">👓 ENTER VR</button>
+      <button id="enter-vr-btn"
+              class="bg-cyan-800 border border-cyan-400/60 px-4 py-2 rounded-lg text-xs font-bold">
+        👓 ENTER VR
+      </button>
 
       <button id="sound-toggle-btn"
               class="bg-slate-900 border border-cyan-500/40 px-4 py-2 rounded-lg text-xs">
@@ -182,16 +185,14 @@ a-scene {
               class="bg-slate-900 border border-cyan-500/40 px-4 py-2 rounded-lg text-xs">
         RESTART DIVE
       </button>
-
     </div>
 
   </div>
-
 </div>
 
 <div id="model-warning"></div>
 
-<!-- ENDING -->
+<!-- ENDING: WHITE FLASH, THEN BLACK -->
 
 <div id="attack-flash"></div>
 
@@ -264,7 +265,7 @@ a-scene {
 
       <a-entity id="player-bubbles"></a-entity>
 
-      <!-- KEEP WORKING ARMS -->
+      <!-- ORIGINAL WORKING ARMS -->
 
       <a-entity id="arm-anchor">
         <a-entity id="diver-arms"
@@ -703,6 +704,12 @@ function updateSpatialAudio() {
     listener.upX.value = up.x;
     listener.upY.value = up.y;
     listener.upZ.value = up.z;
+  } else {
+    listener.setPosition(position.x,position.y,position.z);
+    listener.setOrientation(
+      forward.x,forward.y,forward.z,
+      up.x,up.y,up.z
+    );
   }
 
   for(const creature of creatures) {
@@ -723,7 +730,7 @@ function updateSpatialAudio() {
 }
 
 // =====================================================
-// ARMS
+// ARMS — PRESERVED FROM YOUR WORKING CODE
 // =====================================================
 
 arms.addEventListener('model-loaded',()=> {
@@ -1045,7 +1052,7 @@ function createMarineSnow() {
 }
 
 // =====================================================
-// ENVIRONMENT — GRADUAL DARKNESS
+// ENVIRONMENT — GRADUAL DARKNESS TO 200 M
 // =====================================================
 
 function updateEnvironment() {
@@ -1130,65 +1137,44 @@ function updateEnvironment() {
 }
 
 // =====================================================
-// ANIMAL MODELS
-//
-// CRITICAL FIX:
-// THESE FILES ARE IN THE ROOT DIRECTORY.
-// NO "models/" PREFIX.
-//
-// Also try the models/ folder automatically if needed.
+// ANIMAL MODELS — EXACT GITHUB FILENAMES
 // =====================================================
 
 const ANIMALS = {
   fish: {
     file:'school_of_herring.glb',
-    scale:5,
-    duration:90000,
-    distance:[4.5,7],
-    sound:null,
+    duration:18000,
     desiredSize:3.2,
-    maxSize:8
+    sound:null
   },
 
   ray: {
     file:'ray.glb',
-    scale:.3,
-    duration:30000,
-    distance:[7,11],
-    sound:'manta',
+    duration:17000,
     desiredSize:4.2,
-    maxSize:8
+    sound:'manta'
   },
 
   dolphin: {
     file:'dolphin.glb',
-    scale:45,
-    duration:20000,
-    distance:[10,15],
-    sound:'dolphin',
+    duration:14000,
     desiredSize:4,
-    maxSize:6
+    sound:'dolphin'
   },
 
   whale: {
     file:'whale.glb',
-    scale:3,
-    duration:45000,
-    distance:[14,21],
-    sound:'whale',
+    duration:30000,
     desiredSize:17,
-    maxSize:30,
+    sound:'whale',
     reverseTravel:true
   },
 
   blueWhale: {
     file:'blue_whale.glb',
-    scale:5,
-    duration:60000,
-    distance:[18,25],
-    sound:'whale',
+    duration:35000,
     desiredSize:21,
-    maxSize:35,
+    sound:'whale',
     reverseTravel:true
   }
 };
@@ -1226,15 +1212,12 @@ function selectAnimal() {
 }
 
 // =====================================================
-// MODEL LOADING WITH PATH FALLBACK
+// MODEL LOADING — SCALE AND CENTER REAL GLB GEOMETRY
 // =====================================================
 
 function loadAnimalModel(creature) {
   const model = creature.model;
   const file = creature.config.file;
-
-  // First try the original GitHub root folder.
-  // If missing, try models/ automatically.
 
   const paths = [
     file,
@@ -1263,8 +1246,6 @@ function loadAnimalModel(creature) {
 
     const path = paths[attempt++];
 
-    console.log('Loading animal:',path);
-
     model.setAttribute(
       'gltf-model',
       `url(${path})`
@@ -1281,9 +1262,6 @@ function loadAnimalModel(creature) {
   model.addEventListener('model-loaded',()=>{
     const root = model.getObject3D('mesh');
     if(!root) return;
-
-    // Keep original GLB animations.
-    // Don't modify the mesh's animation skeleton.
 
     root.traverse(object=>{
       if(object.isMesh) {
@@ -1302,19 +1280,16 @@ function loadAnimalModel(creature) {
       }
     });
 
-    // CRITICAL FIX:
-    // Measure the actual model and make it visible.
-    // Previous hardcoded scales could make it microscopic.
+    // Normalize the actual geometry, rather than guessing
+    // whether the GLB's original units are meters.
 
     root.updateMatrixWorld(true);
 
-    const box = new THREE.Box3().setFromObject(root);
+    const bounds = new THREE.Box3().setFromObject(root);
     const size = new THREE.Vector3();
-    box.getSize(size);
+    bounds.getSize(size);
 
-    const longest = Math.max(
-      size.x,size.y,size.z
-    );
+    const longest = Math.max(size.x,size.y,size.z);
 
     if(longest>.00001 && Number.isFinite(longest)) {
       const multiplier = clamp(
@@ -1324,62 +1299,51 @@ function loadAnimalModel(creature) {
       );
 
       root.scale.multiplyScalar(multiplier);
-
-      // Recalculate dimensions after scaling.
       root.updateMatrixWorld(true);
     }
 
-    // Center model geometry on the entity origin. GLBs may have wildly
-    // displaced origins, which previously made nearby creatures invisible.
-    root.updateMatrixWorld(true);
+    // Center geometry without modifying its bones.
+
     const finalBounds = new THREE.Box3().setFromObject(root);
     const center = finalBounds.getCenter(new THREE.Vector3());
-    // Convert the bounding-box center to the model parent's local coordinates.
     const centerLocal = model.object3D.worldToLocal(center.clone());
+
     root.position.sub(centerLocal);
     root.updateMatrixWorld(true);
 
-    // Check actual transformed model bounds, not just its entity origin.
-    // Keep the top of every model beneath the world-space surface at Y=4.
+    // Keep the actual top of the model underwater.
+
     const actualBounds = new THREE.Box3().setFromObject(root);
-    const actualTop = actualBounds.max.y;
-    if (Number.isFinite(actualTop)) {
-      const maxTravelY = Math.max(creature.start.y,creature.end.y);
-      const overflow = maxTravelY + actualTop - 3.4;
-      if (overflow > 0) {
+
+    const actualTop =
+      actualBounds.max.y-creature.entity.object3D.position.y;
+
+    if(Number.isFinite(actualTop)) {
+      const highestTravelY = Math.max(
+        creature.start.y,
+        creature.end.y
+      );
+
+      const overflow = highestTravelY+actualTop-3.4;
+
+      if(overflow>0) {
         creature.start.y -= overflow;
         creature.end.y -= overflow;
         creature.entity.object3D.position.copy(creature.start);
       }
     }
 
-    // No opacity-zero materials.
-    // No fade-in hiding the fish.
-
     creature.ready = true;
     creature.born = performance.now();
 
-    console.log(
-      'VISIBLE ANIMAL LOADED:',
-      creature.type,
-      creature.config.file
-    );
+    console.log('Animal loaded:',file);
   });
 
   tryPath();
 }
 
 // =====================================================
-// SPAWN CREATURES
-//
-// VISIBILITY FIXES:
-// 1. Spawn near player, not 50m away.
-// 2. Spawn at or BELOW eye level.
-// 3. Spawn within visible peripheral vision.
-// 4. Swim sideways across the scene.
-// 5. Do not swim through the camera.
-// 6. No fade-in that hides the model.
-// 7. Don't start timer before model loads.
+// SPAWNING — CLOSE, BELOW YOU, CROSSING YOUR VIEW
 // =====================================================
 
 function spawnCreature(forcedType=null) {
@@ -1387,9 +1351,7 @@ function spawnCreature(forcedType=null) {
     !diving ||
     ended ||
     depth<SETTINGS.submergeDepth
-  ) {
-    return null;
-  }
+  ) return null;
 
   const type = forcedType || selectAnimal();
   const config = ANIMALS[type];
@@ -1430,80 +1392,77 @@ function spawnCreature(forcedType=null) {
 
   const sideSign = Math.random()<.5 ? -1 : 1;
 
-  const distance = random(
-    config.distance[0],
-    config.distance[1]
-  );
+  // Close enough to see through the fog.
+  // Fish and rays appear ahead at the edge of the view.
+  // Dolphins enter from a shoulder.
+  // Whales pass in front, but never through the diver.
 
-  // Spawn only 25–45 degrees off-center.
-  // This is much more visible than 60–80 degrees.
+  const frontDistance =
+    type==='fish' ? random(5,7) :
+    type==='ray' ? random(8,11) :
+    type==='dolphin' ? random(10,14) :
+    type==='whale' ? random(16,21) :
+    random(20,25);
 
-  const angle = random(.34,.64);
-
-  const radial = forward.clone()
-    .multiplyScalar(Math.cos(angle))
-    .addScaledVector(
-      right,
-      sideSign*Math.sin(angle)
-    )
-    .normalize();
+  const sideDistance =
+    type==='fish' ? random(4,6) :
+    type==='ray' ? random(6,9) :
+    type==='dolphin' ? random(7,10) :
+    type==='whale' ? random(12,16) :
+    random(14,19);
 
   const start = player.clone()
-    .addScaledVector(radial,distance);
-
-  // Always same height or BELOW player.
-
-  let verticalOffset;
-
-  if(type==='fish') {
-    verticalOffset = random(-3.8,-2.4);
-  } else if(type==='ray') {
-    verticalOffset = random(-4.5,-2.8);
-  } else if(type==='dolphin') {
-    verticalOffset = random(-4.8,-3);
-  } else {
-    verticalOffset = random(-7,-4);
-  }
-
-  start.y += verticalOffset;
-  // Water surface is world Y=4. Keep the entire creature safely below it.
-  // The final model bounds are checked again after the GLB loads.
-  start.y = Math.min(start.y, 4 - config.desiredSize * .85 - .6);
-
-
-  // Swim sideways across peripheral vision,
-  // rather than disappearing directly away.
-
-  const swimSide = right.clone()
-    .multiplyScalar(
-      sideSign===1 ? -1 : 1
+    .addScaledVector(
+      forward,
+      frontDistance+(type==='dolphin' ? random(-3,-1) : 0)
+    )
+    .addScaledVector(
+      right,
+      sideSign*sideDistance
     );
 
-  // Preserve a safe distance from the player.
-  // Animals cross the visual field ahead of us.
+  // The animal starts below the diver.
 
-  const lateralTravel =
-    type==='fish' ? 8 :
-    type==='ray' ? 12 :
-    type==='dolphin' ? 15 : 20;
+  const verticalOffset =
+    type==='fish' ? random(-2.7,-1.5) :
+    type==='ray' ? random(-3.5,-1.8) :
+    type==='dolphin' ? random(-3.5,-1.5) :
+    random(-5,-2.5);
+
+  start.y += verticalOffset;
+
+  // World water surface is Y=4.
+  // Larger creatures need extra clearance.
+
+  const surfaceClearance =
+    type==='fish' ? 4.5 :
+    type==='ray' ? 5 :
+    type==='dolphin' ? 5 :
+    12;
+
+  start.y = Math.min(
+    start.y,
+    4-surfaceClearance
+  );
+
+  // Travel from one side of the view to the other,
+  // moving slightly farther ahead as they cross.
 
   const end = start.clone()
     .addScaledVector(
-      swimSide,
-      lateralTravel
+      right,
+      -sideSign*(sideDistance*1.9)
+    )
+    .addScaledVector(
+      forward,
+      type==='fish' ? 3 :
+      type==='ray' ? 5 : 9
     );
 
-  // Move slightly away as they cross,
-  // so none pass through the camera.
+  end.y = start.y-random(.2,.9);
 
-  end.addScaledVector(
-    forward,
-    type==='fish' ? 2 : 5
-  );
-
-  end.y = Math.min(start.y+random(-.7,0), 4-config.desiredSize*.85-.6);
-
-  // Whale moves in the OPPOSITE direction.
+  // Keep the requested opposite travel direction
+  // for both whale models.
 
   if(config.reverseTravel) {
     const temp = start.clone();
@@ -1513,24 +1472,20 @@ function spawnCreature(forcedType=null) {
 
   entity.object3D.position.copy(start);
 
-  // GLB orientation:
-  // Face in actual direction of movement.
-
   const direction = end.clone().sub(start);
   direction.y = 0;
   direction.normalize();
 
-  const heading = Math.atan2(
-    direction.x,direction.z
-  )*180/Math.PI;
+  const heading =
+    Math.atan2(direction.x,direction.z)*180/Math.PI;
 
   entity.setAttribute(
     'rotation',
     `0 ${heading} 0`
   );
 
-  // Gentle local whale illumination.
-  // No sudden change to ocean brightness.
+  // Local whale lighting only.
+  // The ocean itself does not suddenly brighten.
 
   if(type==='whale' || type==='blueWhale') {
     const light = document.createElement('a-light');
@@ -1557,7 +1512,9 @@ function spawnCreature(forcedType=null) {
     ready:false,
     failed:false,
     sound:null,
-    soundPlayed:false
+    soundPlayed:false,
+    playerYAtSpawn:player.y,
+    surfaceMaxY:4-surfaceClearance
   };
 
   creatures.push(creature);
@@ -1595,6 +1552,23 @@ function updateCreatures(now) {
       creature.start,
       creature.end,
       t
+    );
+
+    // IMPORTANT:
+    // The player is continuously sinking.
+    // Without this correction, animals are left
+    // above the player after a few seconds.
+    //
+    // Move the encounter down with the descent.
+
+    const descentOffset = Math.min(
+      0,
+      player.y-creature.playerYAtSpawn
+    );
+
+    creature.entity.object3D.position.y = Math.min(
+      creature.entity.object3D.position.y+descentOffset,
+      creature.surfaceMaxY
     );
 
     const distance = creature.entity.object3D.position
@@ -1635,7 +1609,6 @@ function updateMilestones() {
   ) {
     milestones.add('fish');
 
-    // Multiple schools, immediately.
     spawnCreature('fish');
     spawnCreature('fish');
     spawnCreature('fish');
@@ -1664,7 +1637,7 @@ function updateMilestones() {
 }
 
 // =====================================================
-// ENDING
+// ENDING — WHITE FLASH TO BLACK ONLY
 // =====================================================
 
 function playAttackSound() {
@@ -1710,20 +1683,18 @@ function attack() {
   const flash = $('attack-flash');
   const ending = $('attack-ending');
 
+  // Instant white flash.
+
   flash.style.transition = 'none';
   flash.style.background = '#ffffff';
   flash.style.opacity = '1';
 
-  endingTimers.push(
-    setTimeout(()=>{
-      flash.style.background = '#d50015';
-    },110)
-  );
+  // Then pure black. NO RED.
 
   endingTimers.push(
     setTimeout(()=>{
       flash.style.background = '#000000';
-    },300)
+    },160)
   );
 
   endingTimers.push(
@@ -1928,26 +1899,29 @@ $('sound-toggle-btn').addEventListener('click',()=>{
   }
 });
 
-// A-Frame's native enterVR() supports immersive headsets and compatible mobile VR.
-// On unsupported browsers it reports the error without interrupting the dive.
-$('enter-vr-btn').addEventListener('click', async () => {
+$('enter-vr-btn').addEventListener('click',async()=>{
   try {
-    if (sceneEl.is('vr-mode')) {
+    if(sceneEl.is('vr-mode')) {
       await sceneEl.exitVR();
     } else {
       await sceneEl.enterVR();
     }
-  } catch (error) {
+  } catch(error) {
     console.warn('VR mode unavailable:',error);
-    alert('VR is not available in this browser/device. Try a WebXR-capable browser or headset.');
+    alert(
+      'VR is not available in this browser/device. Try a WebXR-capable browser or headset.'
+    );
   }
 });
+
 sceneEl.addEventListener('enter-vr',()=>{
   $('enter-vr-btn').textContent = 'EXIT VR';
 });
+
 sceneEl.addEventListener('exit-vr',()=>{
   $('enter-vr-btn').textContent = '👓 ENTER VR';
 });
+
 $('recenter-btn').addEventListener('click',resetDive);
 $('ending-restart').addEventListener('click',resetDive);
 
