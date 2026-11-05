@@ -2,2147 +2,2219 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Into the Abyss</title>
 
-  <title>Megalohydrothalassophobia: Into the Abyss</title>
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  color: white;
+  font-family: 'Share Tech Mono', monospace;
+  user-select: none;
+}
 
-    body {
-      font-family: 'Share Tech Mono', monospace;
-      user-select: none;
-      overflow: hidden;
-      margin: 0;
-      background: #000;
-    }
+a-scene {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
 
-    .scuba-vignette {
-      box-shadow: inset 0 0 15vw 8vw rgba(0, 5, 10, 0.95);
-    }
+.scuba-vignette {
+  box-shadow: inset 0 0 15vw 8vw rgba(0,5,10,0.95);
+}
 
-    .hud-text {
-      text-shadow: 0 0 8px rgba(0, 240, 255, 0.7);
-    }
-
-    .pulse-glow {
-      animation: pulse 2s infinite ease-in-out;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        opacity: 0.85;
-        transform: scale(1);
-      }
-
-      50% {
-        opacity: 1;
-        transform: scale(1.02);
-      }
-    }
-
-    a-scene {
-      width: 100vw;
-      height: 100vh;
-      display: block;
-    }
-  </style>
+.hud-text {
+  text-shadow: 0 0 8px rgba(0,240,255,0.7);
+}
+</style>
 </head>
 
-<body class="bg-black text-white">
+<body>
 
-  <!-- HUD -->
-  <div
-    id="ui-overlay"
-    class="fixed inset-0 z-50 pointer-events-none flex flex-col justify-between p-6 scuba-vignette">
+<div id="ui-overlay"
+  class="fixed inset-0 z-50 pointer-events-none flex flex-col justify-between p-6 scuba-vignette">
 
-    <div class="flex justify-between items-start w-full">
+  <div class="flex justify-between items-start">
 
-      <div class="bg-slate-950/85 backdrop-blur-md border border-cyan-500/40 p-4 rounded-xl shadow-2xl">
+    <div class="bg-slate-950/85 border border-cyan-500/40 p-4 rounded-xl">
+      <h1 class="text-xl font-bold text-cyan-400 tracking-wider">
+        DEPTH TELEMETRY
+      </h1>
 
-        <h1 class="text-lg md:text-xl font-bold text-cyan-400 tracking-wider flex items-center gap-2">
-          <span
-            id="status-dot"
-            class="w-3 h-3 rounded-full bg-cyan-400 inline-block animate-ping">
-          </span>
-          DEPTH TELEMETRY
-        </h1>
-
-        <div class="text-3xl md:text-5xl font-black text-white my-1 tracking-mono hud-text">
-          <span id="depth-display">0.0</span>
-          <span class="text-cyan-400 text-2xl">M</span>
-        </div>
-
-        <div class="text-xs text-cyan-300/70 tracking-widest uppercase">
-          Status:
-          <span id="descent-status" class="text-emerald-400 font-bold">
-            Surface Ready
-          </span>
-        </div>
-
+      <div class="text-5xl font-black my-1 hud-text">
+        <span id="depth-display">0.0</span>
+        <span class="text-cyan-400 text-2xl">M</span>
       </div>
 
-      <div class="bg-slate-950/85 backdrop-blur-md border border-cyan-500/40 px-4 py-3 rounded-xl hidden sm:block">
-
-        <div class="text-xs text-cyan-400/80 uppercase tracking-widest">
-          Zone Classification
-        </div>
-
-        <div
-          id="zone-display"
-          class="text-base md:text-lg font-bold text-cyan-200">
-          Phase 1: Epipelagic (Sunlight Zone)
-        </div>
-
+      <div class="text-xs text-cyan-300 tracking-widest">
+        STATUS:
+        <span id="descent-status" class="text-emerald-400">
+          SURFACE READY
+        </span>
       </div>
     </div>
 
-    <div
-      id="start-screen"
-      class="pointer-events-auto self-center text-center max-w-md bg-slate-950/95 border border-cyan-500/50 p-8 rounded-2xl shadow-2xl backdrop-blur-xl pulse-glow">
-
-      <div class="text-cyan-400 text-xs font-semibold tracking-widest uppercase mb-2">
-        Psychological VR Dive
+    <div class="bg-slate-950/85 border border-cyan-500/40 px-4 py-3 rounded-xl hidden sm:block">
+      <div class="text-xs text-cyan-400 tracking-widest">
+        ZONE CLASSIFICATION
       </div>
-
-      <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-4 tracking-wide">
-        MEGALOHYDROTHALASSOPHOBIA
-      </h2>
-
-      <p class="text-slate-300 text-sm mb-6 leading-relaxed">
-        You will sink uncontrollably into the ocean depths, unable to stop or turn back.
-        Put on headphones and look around 360°.
-      </p>
-
-      <button
-        id="start-btn"
-        class="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg transition-all transform active:scale-95 tracking-wider text-lg border border-cyan-300/40">
-        ENTER THE DEPTHS
-      </button>
-
-    </div>
-
-    <div class="flex justify-between items-end w-full">
-
-      <div class="text-xs text-slate-300 bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800">
-        [Look Around 360° • Mouse / VR Headset]
+      <div id="zone-display" class="text-lg font-bold text-cyan-200">
+        Phase 1: Epipelagic (Sunlight Zone)
       </div>
-
-      <div class="flex gap-2 pointer-events-auto">
-
-        <button
-          id="sound-toggle-btn"
-          class="bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-lg text-xs font-semibold tracking-wider transition flex items-center gap-1">
-          🔊 AUDIO:
-          <span id="sound-state" class="text-emerald-400">ON</span>
-        </button>
-
-        <button
-          id="recenter-btn"
-          class="bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 px-4 py-2 rounded-lg text-xs font-semibold tracking-wider transition">
-          RESTART DIVE
-        </button>
-
-      </div>
-
     </div>
 
   </div>
 
-  <!-- VR SCENE -->
-  <a-scene
-    embedded
-    renderer="antialias: true; colorManagement: true; alpha: false;"
-    fog="type: exponential; color: #88ccff; density: 0.005">
+  <div id="start-screen"
+    class="pointer-events-auto self-center text-center max-w-md bg-slate-950/95 border border-cyan-500/50 p-8 rounded-2xl">
 
-    <a-assets timeout="10000"></a-assets>
+    <h2 class="text-3xl font-bold mb-4">
+      MEGALOHYDROTHALASSOPHOBIA
+    </h2>
 
-    <a-light
-      id="sunlight"
-      type="directional"
-      color="#ffffff"
-      intensity="1.8"
-      position="0 80 20">
-    </a-light>
+    <p class="text-slate-300 text-sm mb-6">
+      Sink uncontrollably into the ocean depths.
+      Look around 360° and listen to what moves beneath you.
+    </p>
 
-    <a-light
-      id="ambient-light"
-      type="ambient"
-      color="#0077aa"
-      intensity="0.9">
-    </a-light>
+    <button id="start-btn"
+      class="w-full py-4 bg-cyan-700 hover:bg-cyan-600 rounded-xl font-bold pointer-events-auto">
+      ENTER THE DEPTHS
+    </button>
 
-    <a-sky id="ocean-sky" color="#88ccff"></a-sky>
+  </div>
 
-    <a-sphere
-      id="surface-sun"
-      position="0 95 -220"
-      radius="24"
-      material="shader: flat; color: #ffcc00; fog: false">
-    </a-sphere>
+  <div class="flex justify-between items-end">
 
-    <!-- CAMERA AND BODY -->
-    <a-entity id="rig" position="0 7 0">
+    <div class="text-xs bg-slate-950/80 px-3 py-2 rounded-lg">
+      [Look Around 360° • Mouse / VR Headset]
+    </div>
 
-      <a-camera
-        id="camera"
-        look-controls="pointerLockEnabled: false"
-        wasd-controls="enabled: false"
-        near="0.1">
+    <div class="flex gap-2 pointer-events-auto">
 
-        <a-light
-          id="flashlight"
-          type="spot"
-          color="#cceeff"
-          intensity="0"
-          angle="35"
-          penumbra="0.7"
-          distance="90"
-          position="0 0.1 0">
-        </a-light>
+      <button id="sound-toggle-btn"
+        class="bg-slate-900 border border-cyan-500/40 px-4 py-2 rounded-lg text-xs">
+        🔊 AUDIO:
+        <span id="sound-state" class="text-emerald-400">ON</span>
+      </button>
 
-        <!-- Existing breathing bubbles -->
-        <a-entity id="player-bubbles"></a-entity>
+      <button id="recenter-btn"
+        class="bg-slate-900 border border-cyan-500/40 px-4 py-2 rounded-lg text-xs">
+        RESTART DIVE
+      </button>
 
-        <!--
-          KEEP ARMS INSIDE CAMERA.
+    </div>
 
-          This preserves the pose that worked.
-          JavaScript compensates for head pitch
-          and prevents exposed shoulder ends.
-        -->
-        <a-entity id="arm-anchor" position="0 0 0">
+  </div>
+</div>
 
-          <a-entity
-            id="diver-arms"
-            gltf-model="url(rigged_arms.glb)">
-          </a-entity>
+<a-scene
+  embedded
+  renderer="antialias: true; colorManagement: true; alpha: false"
+  fog="type: exponential; color: #88ccff; density: 0.005">
 
+  <a-assets timeout="10000"></a-assets>
+
+  <a-light id="sunlight"
+    type="directional"
+    color="#ffffff"
+    intensity="1.8"
+    position="0 80 20">
+  </a-light>
+
+  <a-light id="ambient-light"
+    type="ambient"
+    color="#0077aa"
+    intensity="0.9">
+  </a-light>
+
+  <a-sky id="ocean-sky" color="#88ccff"></a-sky>
+
+  <a-sphere id="surface-sun"
+    position="0 95 -220"
+    radius="24"
+    material="shader: flat; color: #ffcc00; fog: false">
+  </a-sphere>
+
+  <!-- CAMERA -->
+  <a-entity id="rig" position="0 7 0">
+
+    <a-camera
+      id="camera"
+      look-controls="pointerLockEnabled: false"
+      wasd-controls="enabled: false"
+      near="0.1">
+
+      <a-light id="flashlight"
+        type="spot"
+        color="#cceeff"
+        intensity="0"
+        angle="35"
+        penumbra="0.7"
+        distance="90"
+        position="0 0.1 0">
+      </a-light>
+
+      <a-entity id="player-bubbles"></a-entity>
+
+      <a-entity id="arm-anchor">
+
+        <a-entity id="diver-arms"
+          gltf-model="url(rigged_arms.glb)">
         </a-entity>
-
-      </a-camera>
-
-      <a-entity id="particle-container"></a-entity>
-
-    </a-entity>
-
-    <!-- WATER -->
-    <a-entity
-      id="water-surface"
-      geometry="primitive: plane; width: 1000; height: 1000; segmentsWidth: 120; segmentsHeight: 120"
-      rotation="-90 0 0"
-      position="0 4 0"
-      material="shader: flat; color: #21a6c9; transparent: true; opacity: 0.72; side: double; depthWrite: false">
-    </a-entity>
-
-    <a-entity id="dynamic-creatures"></a-entity>
-
-    <!-- HADAL TRENCH -->
-    <a-entity id="stage-4-group" position="0 -450 0">
-
-      <a-entity id="colossal-entity" position="0 -50 -35">
-
-        <a-sphere
-          id="titan-eye-left"
-          position="-16 16 -5"
-          radius="7"
-          color="#000000">
-
-          <a-sphere
-            position="0 0 5"
-            radius="3.5"
-            color="#ff0000"
-            material="emissive: #ff0000; emissiveIntensity: 0.9">
-          </a-sphere>
-
-          <a-sphere
-            position="0 0 7"
-            radius="1.4"
-            color="#000000">
-          </a-sphere>
-
-        </a-sphere>
-
-        <a-sphere
-          id="titan-eye-right"
-          position="16 16 -5"
-          radius="7"
-          color="#000000">
-
-          <a-sphere
-            position="0 0 5"
-            radius="3.5"
-            color="#ff0000"
-            material="emissive: #ff0000; emissiveIntensity: 0.9">
-          </a-sphere>
-
-          <a-sphere
-            position="0 0 7"
-            radius="1.4"
-            color="#000000">
-          </a-sphere>
-
-        </a-sphere>
-
-        <a-torus
-          color="#010305"
-          radius="30"
-          radius-tubular="4"
-          rotation="90 0 0"
-          scale="1 1.4 1">
-        </a-torus>
-
-        <a-cone color="#e0f7fc" radius-bottom="1.8" height="9" position="-20 6 15" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
-        <a-cone color="#e0f7fc" radius-bottom="2.2" height="11" position="-10 3 20" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
-        <a-cone color="#e0f7fc" radius-bottom="2.5" height="12" position="0 2 22" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
-        <a-cone color="#e0f7fc" radius-bottom="2.2" height="11" position="10 3 20" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
-        <a-cone color="#e0f7fc" radius-bottom="1.8" height="9" position="20 6 15" rotation="160 0 0" material="emissive: #77ccdd; emissiveIntensity: 0.35"></a-cone>
-
-        <a-circle
-          position="0 -8 -15"
-          radius="22"
-          color="#ff0022"
-          material="shader: flat; opacity: 0.2; transparent: true">
-        </a-circle>
 
       </a-entity>
 
+    </a-camera>
+
+    <a-entity id="particle-container"></a-entity>
+
+  </a-entity>
+
+  <!-- WATER SURFACE -->
+  <a-entity id="water-surface"
+    geometry="primitive: plane; width: 1000; height: 1000; segmentsWidth: 120; segmentsHeight: 120"
+    rotation="-90 0 0"
+    position="0 4 0"
+    material="shader: flat; color: #21a6c9; transparent: true; opacity: 0.72; side: double; depthWrite: false">
+  </a-entity>
+
+  <a-entity id="dynamic-creatures"></a-entity>
+
+  <!-- DEEP SEA ENTITY -->
+  <a-entity id="stage-4-group" position="0 -450 0">
+
+    <a-entity id="colossal-entity" position="0 -50 -35">
+
+      <a-sphere position="-16 16 -5" radius="7" color="#000000">
+        <a-sphere position="0 0 5" radius="3.5"
+          material="color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.9">
+        </a-sphere>
+        <a-sphere position="0 0 7" radius="1.4" color="#000000"></a-sphere>
+      </a-sphere>
+
+      <a-sphere position="16 16 -5" radius="7" color="#000000">
+        <a-sphere position="0 0 5" radius="3.5"
+          material="color: #ff0000; emissive: #ff0000; emissiveIntensity: 0.9">
+        </a-sphere>
+        <a-sphere position="0 0 7" radius="1.4" color="#000000"></a-sphere>
+      </a-sphere>
+
+      <a-torus
+        color="#010305"
+        radius="30"
+        radius-tubular="4"
+        rotation="90 0 0"
+        scale="1 1.4 1">
+      </a-torus>
+
+      <a-cone color="#e0f7fc" radius-bottom="1.8" height="9"
+        position="-20 6 15" rotation="160 0 0"></a-cone>
+
+      <a-cone color="#e0f7fc" radius-bottom="2.2" height="11"
+        position="-10 3 20" rotation="160 0 0"></a-cone>
+
+      <a-cone color="#e0f7fc" radius-bottom="2.5" height="12"
+        position="0 2 22" rotation="160 0 0"></a-cone>
+
+      <a-cone color="#e0f7fc" radius-bottom="2.2" height="11"
+        position="10 3 20" rotation="160 0 0"></a-cone>
+
+      <a-cone color="#e0f7fc" radius-bottom="1.8" height="9"
+        position="20 6 15" rotation="160 0 0"></a-cone>
+
     </a-entity>
 
-  </a-scene>
+  </a-entity>
 
-  <script>
+</a-scene>
 
-    // =====================================================
-    // CONFIGURATION
-    // =====================================================
+<script>
 
-    const ARM_SETTINGS = {
+// ======================================================
+// SETTINGS
+// ======================================================
 
-      // Keep the successful arm size and pose.
-      size: 1.48,
-      spread: 0.16,
+const THREE = AFRAME.THREE;
 
-      // The shoulder starts low enough that
-      // its open end is normally below the frame.
-      shoulderY: -1.18,
+const SETTINGS = {
 
-      shoulderZ: -0.12,
+  maxDepth: 480,
+  descentSpeed: 1.3,
 
-      // Floating movement
-      floatAmount: 0.035,
-      swayAmount: 0.018,
+  // Overall sound output.
+  masterVolume: 1.65,
 
-      // Water resistance keeps arms drifting upward.
-      buoyancyAmount: 0.035,
+  // Environmental sound.
+  oceanVolume: 0.55,
+  bassVolume: 0.65,
+  breathingVolume: 0.32,
 
-      // Looking down:
-      // 0 = arms fully follow your head.
-      // 1 = arms completely ignore head pitch.
-      //
-      // Partial compensation makes the hands visible
-      // while keeping the cut shoulders out of view.
-      headPitchCompensation: 0.72,
+  // Creature sounds.
+  creatureVolume: 0.9,
+  creatureMaxDistance: 115,
 
-      // Small bubbles shed from the hands.
-      bubbleInterval: 220,
-      bubbleRadiusMin: 0.008,
-      bubbleRadiusMax: 0.019
-    };
+  // Arms.
+  armLength: 1.48,
+  armSpread: 0.16,
 
-    // =====================================================
-    // APPLICATION STATE
-    // =====================================================
+  shoulderY: -1.34,
+  shoulderZ: -0.12,
 
-    let isDiving = false;
-    let isMuted = false;
-    let currentDepth = 0;
+  armFloat: 0.045,
+  armSway: 0.024,
 
-    const maxDepth = 480;
-    const descentSpeed = 1.3;
+  headPitchCompensation: 0.56,
 
-    const startScreen =
-      document.getElementById('start-screen');
+  // Bubbles.
+  handBubbleInterval: 115,
+  handBubbleCount: 4,
+  handBubbleSize: 0.025,
 
-    const startBtn =
-      document.getElementById('start-btn');
+  // Shoulder extension.
+  shoulderExtensionLength: 0.8
+};
 
-    const recenterBtn =
-      document.getElementById('recenter-btn');
+// ======================================================
+// STATE
+// ======================================================
 
-    const soundToggleBtn =
-      document.getElementById('sound-toggle-btn');
+let isDiving = false;
+let isMuted = false;
+let currentDepth = 0;
 
-    const soundState =
-      document.getElementById('sound-state');
+let lastTimestamp = 0;
+let creatureSpawnTimer = 0;
 
-    const depthDisplay =
-      document.getElementById('depth-display');
+const sceneEl = document.querySelector('a-scene');
 
-    const zoneDisplay =
-      document.getElementById('zone-display');
+const cameraRig = document.getElementById('rig');
+const cameraEl = document.getElementById('camera');
 
-    const statusDisplay =
-      document.getElementById('descent-status');
+const diverArms = document.getElementById('diver-arms');
+const armAnchor = document.getElementById('arm-anchor');
 
-    const cameraRig =
-      document.getElementById('rig');
+const depthDisplay = document.getElementById('depth-display');
+const zoneDisplay = document.getElementById('zone-display');
+const statusDisplay = document.getElementById('descent-status');
 
-    const cameraEl =
-      document.getElementById('camera');
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
 
-    const sceneEl =
-      document.querySelector('a-scene');
+const soundToggleBtn = document.getElementById('sound-toggle-btn');
+const soundState = document.getElementById('sound-state');
+const recenterBtn = document.getElementById('recenter-btn');
 
-    const oceanSky =
-      document.getElementById('ocean-sky');
+const oceanSky = document.getElementById('ocean-sky');
+const sunlight = document.getElementById('sunlight');
+const ambientLight = document.getElementById('ambient-light');
+const flashlight = document.getElementById('flashlight');
 
-    const sunlight =
-      document.getElementById('sunlight');
+const armState = {
 
-    const ambientLight =
-      document.getElementById('ambient-light');
+  ready: false,
 
-    const flashlight =
-      document.getElementById('flashlight');
+  shoulders: [],
+  originalRotations: [],
 
-    const diverArms =
-      document.getElementById('diver-arms');
+  hands: [],
 
-    const armAnchor =
-      document.getElementById('arm-anchor');
+  basePosition: null,
 
-    const THREE = AFRAME.THREE;
+  shoulderExtensions: [],
 
-    // =====================================================
-    // ARM STATE
-    // =====================================================
+  lastHeadQuaternion: null,
+  lastBubbleTime: 0
+};
 
-    const armPose = {
-      ready: false,
+const activeCreatures = [];
 
-      bones: [],
-      originals: [],
+// ======================================================
+// AUDIO STATE
+// ======================================================
 
-      leftHand: null,
-      rightHand: null,
+let audioCtx = null;
 
-      basePosition: null,
+let masterGain = null;
+let compressor = null;
 
-      previousHeadRotation: null,
+let oceanGain = null;
+let bassGain = null;
+let bassOsc = null;
+let breathingGain = null;
 
-      lastBubbleTime: 0
-    };
+let breathingTimer = null;
+let heartbeatTimer = null;
 
-    // =====================================================
-    // LOAD THE EXISTING HUMAN ARM MODEL
-    // =====================================================
+// ======================================================
+// AUDIO INITIALIZATION
+// ======================================================
 
-    diverArms.addEventListener('model-loaded', () => {
+function initAudio() {
 
-      const model =
-        diverArms.getObject3D('mesh');
+  if (audioCtx) return;
 
-      if (!model) {
-        console.error('Arm model not found.');
-        return;
-      }
+  const AudioContextClass =
+    window.AudioContext ||
+    window.webkitAudioContext;
 
-      const bones = {};
+  if (!AudioContextClass) return;
 
-      model.traverse(object => {
+  audioCtx = new AudioContextClass();
 
-        if (object.isBone) {
-          bones[object.name] = object;
-        }
+  masterGain = audioCtx.createGain();
 
-        if (object.isSkinnedMesh) {
+  masterGain.gain.value =
+    isMuted ? 0 : SETTINGS.masterVolume;
 
-          object.frustumCulled = false;
+  // Prevent loud sounds from clipping excessively.
+  compressor = audioCtx.createDynamicsCompressor();
 
-          const materials =
-            Array.isArray(object.material)
-              ? object.material
-              : [object.material];
+  compressor.threshold.value = -18;
+  compressor.knee.value = 20;
+  compressor.ratio.value = 5;
+  compressor.attack.value = 0.008;
+  compressor.release.value = 0.25;
 
-          materials.forEach(material => {
+  masterGain.connect(compressor);
+  compressor.connect(audioCtx.destination);
 
-            if (material) {
-              material.side = THREE.DoubleSide;
-            }
+  // White/pinkish underwater noise.
+  const noiseBuffer = createNoiseBuffer(4);
 
-          });
-        }
-      });
+  const oceanNoise = audioCtx.createBufferSource();
 
-      const leftShoulder =
-        bones['upperarm_l_02'];
+  oceanNoise.buffer = noiseBuffer;
+  oceanNoise.loop = true;
 
-      const rightShoulder =
-        bones['upperarm_r_020'];
+  const oceanFilter = audioCtx.createBiquadFilter();
 
-      const leftHand =
-        bones['hand_l_04'];
+  oceanFilter.type = 'lowpass';
+  oceanFilter.frequency.value = 450;
 
-      const rightHand =
-        bones['hand_r_022'];
+  oceanGain = audioCtx.createGain();
 
-      if (
-        !leftShoulder ||
-        !rightShoulder ||
-        !leftHand ||
-        !rightHand
-      ) {
+  oceanGain.gain.value =
+    SETTINGS.oceanVolume;
 
-        console.error(
-          'Required arm bones missing:',
-          Object.keys(bones)
-        );
+  oceanNoise.connect(oceanFilter);
+  oceanFilter.connect(oceanGain);
+  oceanGain.connect(masterGain);
 
-        return;
-      }
+  oceanNoise.start();
 
-      // Reset only the model transforms.
-      // Do not translate individual bones.
-      model.position.set(0, 0, 0);
-      model.rotation.set(0, 0, 0);
-      model.scale.set(1, 1, 1);
+  // Low underwater pressure drone.
+  bassOsc = audioCtx.createOscillator();
 
-      diverArms.object3D.position.set(0, 0, 0);
-      diverArms.object3D.rotation.set(0, 0, 0);
-      diverArms.object3D.scale.setScalar(1);
+  bassOsc.type = 'sine';
+  bassOsc.frequency.value = 48;
 
-      model.updateMatrixWorld(true);
+  bassGain = audioCtx.createGain();
 
-      // Read the actual bone positions.
-      const local = bone => {
+  bassGain.gain.value = 0.035;
 
-        const world = new THREE.Vector3();
+  bassOsc.connect(bassGain);
+  bassGain.connect(masterGain);
 
-        bone.getWorldPosition(world);
+  bassOsc.start();
 
-        return model.parent.worldToLocal(world);
-      };
+  // Separate filtered breathing noise.
+  const breathNoise = audioCtx.createBufferSource();
 
-      const ls = local(leftShoulder);
-      const rs = local(rightShoulder);
+  breathNoise.buffer = noiseBuffer;
+  breathNoise.loop = true;
 
-      const lh = local(leftHand);
-      const rh = local(rightHand);
+  const breathFilter = audioCtx.createBiquadFilter();
 
-      const shoulderMid = ls
-        .clone()
-        .add(rs)
-        .multiplyScalar(0.5);
+  breathFilter.type = 'bandpass';
+  breathFilter.frequency.value = 650;
+  breathFilter.Q.value = 0.65;
 
-      const handMid = lh
-        .clone()
-        .add(rh)
-        .multiplyScalar(0.5);
+  breathingGain = audioCtx.createGain();
 
-      const across = rh
-        .clone()
-        .sub(lh)
-        .normalize();
+  breathingGain.gain.value = 0.001;
 
-      const forward = handMid
-        .clone()
-        .sub(shoulderMid)
-        .normalize();
+  breathNoise.connect(breathFilter);
+  breathFilter.connect(breathingGain);
+  breathingGain.connect(masterGain);
 
-      const up = new THREE.Vector3()
-        .crossVectors(across, forward)
-        .normalize();
+  breathNoise.start();
 
-      const front = new THREE.Vector3()
-        .crossVectors(across, up)
-        .normalize();
+  scheduleBreathing();
+  scheduleHeartbeat();
+}
 
-      // This orientation is retained from
-      // the screenshot where the arms worked.
-      const sourceBasis =
-        new THREE.Matrix4().makeBasis(
-          across,
-          up,
-          front
-        );
+function createNoiseBuffer(seconds = 2) {
 
-      const targetBasis =
-        new THREE.Matrix4().makeBasis(
-          new THREE.Vector3(1, 0, 0),
-          new THREE.Vector3(0, 1, 0),
-          new THREE.Vector3(0, 0, 1)
-        );
+  const length =
+    Math.floor(audioCtx.sampleRate * seconds);
 
-      const rotation =
-        new THREE.Quaternion()
-          .setFromRotationMatrix(
-            targetBasis.multiply(
-              sourceBasis.clone().invert()
-            )
-          );
+  const buffer =
+    audioCtx.createBuffer(
+      1,
+      length,
+      audioCtx.sampleRate
+    );
 
-      diverArms.object3D.quaternion.copy(rotation);
+  const data = buffer.getChannelData(0);
 
-      const length = (
-        ls.distanceTo(lh) +
-        rs.distanceTo(rh)
-      ) / 2;
+  let previous = 0;
 
-      const scale =
-        ARM_SETTINGS.size /
-        Math.max(length, 0.001);
+  for (let i = 0; i < length; i++) {
 
-      diverArms.object3D.scale.setScalar(scale);
+    const white = Math.random() * 2 - 1;
 
-      const rotatedMid = shoulderMid
-        .clone()
-        .applyQuaternion(rotation)
-        .multiplyScalar(scale);
+    previous =
+      (previous + white * 0.08) / 1.08;
 
-      // Lower shoulders to keep the open ends
-      // out of the normal field of view.
-      diverArms.object3D.position.set(
-        -rotatedMid.x,
-        ARM_SETTINGS.shoulderY - rotatedMid.y,
-        ARM_SETTINGS.shoulderZ - rotatedMid.z
-      );
+    data[i] = previous * 3.5;
+  }
 
-      // Maintain the outward V.
-      leftShoulder.rotateZ(
-        -ARM_SETTINGS.spread
-      );
+  return buffer;
+}
 
-      rightShoulder.rotateZ(
-        ARM_SETTINGS.spread
-      );
+// ======================================================
+// SPATIAL CREATURE AUDIO
+// ======================================================
+//
+// Each animal has its own sound design.
+// Sounds are synthesized in the browser;
+// no additional MP3 files are required.
+//
+// PannerNode gives distance attenuation and
+// left/right spatial direction.
+// ======================================================
 
-      armPose.bones = [
-        leftShoulder,
-        rightShoulder
-      ];
+function createCreatureAudio(type, creatureEl, durationMs) {
 
-      armPose.originals =
-        armPose.bones.map(
-          bone => bone.quaternion.clone()
-        );
-
-      armPose.leftHand = leftHand;
-      armPose.rightHand = rightHand;
-
-      armPose.basePosition =
-        diverArms.object3D.position.clone();
-
-      armPose.previousHeadRotation =
-        cameraEl.object3D.quaternion.clone();
-
-      armPose.ready = true;
-
-      console.log(
-        'Arms ready: floating pose and hand bubbles enabled.'
-      );
-    });
-
-    diverArms.addEventListener('model-error', event => {
-
-      console.error(
-        'Could not load rigged_arms.glb',
-        event
-      );
-    });
-
-    // =====================================================
-    // BUBBLES GENERATED BY ARM MOVEMENT
-    // =====================================================
-
-    function spawnArmBubble(handBone) {
-
-      if (
-        !isDiving ||
-        currentDepth < 3 ||
-        !handBone
-      ) {
-        return;
-      }
-
-      const handWorld =
-        new THREE.Vector3();
-
-      // The bubble begins at the actual hand bone.
-      handBone.getWorldPosition(handWorld);
-
-      const offset = new THREE.Vector3(
-        (Math.random() - 0.5) * 0.12,
-        (Math.random() - 0.5) * 0.08,
-        (Math.random() - 0.5) * 0.12
-      );
-
-      const start =
-        handWorld.clone().add(offset);
-
-      // Bubble rises in world space,
-      // rather than following the camera.
-      const end = start.clone().add(
-        new THREE.Vector3(
-          (Math.random() - 0.5) * 0.25,
-          0.45 + Math.random() * 0.45,
-          (Math.random() - 0.5) * 0.2
-        )
-      );
-
-      const bubble =
-        document.createElement('a-sphere');
-
-      const radius =
-        ARM_SETTINGS.bubbleRadiusMin +
-        Math.random() *
-        (
-          ARM_SETTINGS.bubbleRadiusMax -
-          ARM_SETTINGS.bubbleRadiusMin
-        );
-
-      bubble.setAttribute(
-        'radius',
-        radius
-      );
-
-      bubble.setAttribute(
-        'position',
-        `${start.x} ${start.y} ${start.z}`
-      );
-
-      bubble.setAttribute(
-        'material',
-        'shader: flat; color: #d8f7ff; transparent: true; opacity: 0.38; depthWrite: false'
-      );
-
-      bubble.setAttribute(
-        'animation__rise',
-        `property: position; to: ${end.x} ${end.y} ${end.z}; dur: 1300; easing: easeOutSine`
-      );
-
-      bubble.setAttribute(
-        'animation__fade',
-        'property: material.opacity; from: 0.38; to: 0; dur: 1300; easing: linear'
-      );
-
-      // Place in scene coordinates, not under
-      // the moving camera or diver arms.
-      sceneEl.appendChild(bubble);
-
-      setTimeout(() => {
-        if (bubble.parentNode) {
-          bubble.parentNode.removeChild(bubble);
-        }
-      }, 1450);
+  if (!audioCtx || !masterGain) {
+    return null;
+  }
+
+  const now = audioCtx.currentTime;
+
+  const duration =
+    Math.min(durationMs / 1000, 12);
+
+  const output = audioCtx.createGain();
+
+  output.gain.value = 0;
+
+  const panner = audioCtx.createPanner();
+
+  panner.panningModel = 'HRTF';
+
+  panner.distanceModel = 'inverse';
+
+  panner.refDistance = 5;
+  panner.maxDistance = SETTINGS.creatureMaxDistance;
+
+  panner.rolloffFactor = 1.5;
+
+  output.connect(panner);
+  panner.connect(masterGain);
+
+  const oscillators = [];
+
+  function addTone(
+    frequency,
+    waveform,
+    volume,
+    modulationDepth = 0,
+    modulationRate = 0
+  ) {
+
+    const oscillator = audioCtx.createOscillator();
+
+    oscillator.type = waveform;
+    oscillator.frequency.value = frequency;
+
+    const gain = audioCtx.createGain();
+
+    gain.gain.value = volume;
+
+    oscillator.connect(gain);
+    gain.connect(output);
+
+    if (modulationDepth > 0) {
+
+      const lfo = audioCtx.createOscillator();
+
+      const lfoGain = audioCtx.createGain();
+
+      lfo.frequency.value = modulationRate;
+      lfoGain.gain.value = modulationDepth;
+
+      lfo.connect(lfoGain);
+      lfoGain.connect(oscillator.frequency);
+
+      lfo.start(now);
+      lfo.stop(now + duration + 0.1);
+
+      oscillators.push(lfo);
     }
 
-    // =====================================================
-    // FLOATING ARM ANIMATION
-    // =====================================================
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.1);
 
-    function animateDiverArms(seconds) {
+    oscillators.push(oscillator);
 
-      if (!armPose.ready) return;
+    return oscillator;
+  }
 
-      const pitch =
-        cameraEl.object3D.rotation.x;
+  // HERRING:
+  // Soft, irregular high-pitched movement.
+  if (type === 1) {
 
-      // Negative pitch generally means looking down.
-      const downLook =
-        Math.max(0, -pitch);
+    addTone(145, 'sine', 0.10, 35, 4.2);
+    addTone(270, 'sine', 0.045, 50, 6.1);
 
-      // Compensate most of the head pitch.
-      // This lets the user look toward the hands.
-      armAnchor.object3D.rotation.x =
-        -pitch *
-        ARM_SETTINGS.headPitchCompensation;
+  }
 
-      // As the user looks down, move the arms
-      // slightly lower in camera space.
-      //
-      // This is a framing safeguard:
-      // the open shoulder ends should not
-      // swing into the middle of the screen.
-      armAnchor.object3D.position.y =
-        -downLook * 0.24;
+  // RAY:
+  // Airy, eerie gliding hum.
+  else if (type === 2) {
 
-      // Small forward drift of the whole arm pose.
-      const bodyFloat =
-        Math.sin(seconds * 0.55) *
-        ARM_SETTINGS.buoyancyAmount;
+    addTone(95, 'sine', 0.20, 22, 0.32);
+    addTone(188, 'sine', 0.07, 14, 0.5);
 
-      const bodySway =
-        Math.sin(seconds * 0.38) *
-        ARM_SETTINGS.swayAmount;
+  }
 
-      diverArms.object3D.position.set(
-        armPose.basePosition.x + bodySway,
-        armPose.basePosition.y + bodyFloat,
-        armPose.basePosition.z
-      );
+  // DOLPHIN:
+  // Distinct clicking/chirping calls.
+  else if (type === 3) {
 
-      // Both arms float independently.
-      //
-      // Slow motion is more convincing here:
-      // the character is sinking, not swimming.
-      const leftFloat =
-        Math.sin(seconds * 0.74) *
-        ARM_SETTINGS.floatAmount;
+    const chirp = addTone(
+      1100,
+      'sine',
+      0.13,
+      550,
+      7
+    );
 
-      const rightFloat =
-        Math.sin(seconds * 0.68 + 1.3) *
-        ARM_SETTINGS.floatAmount;
+    chirp.frequency.setValueAtTime(
+      1700,
+      now
+    );
 
-      const leftSway =
-        Math.sin(seconds * 0.43 + 0.4) *
-        ARM_SETTINGS.swayAmount;
+    chirp.frequency.exponentialRampToValueAtTime(
+      650,
+      now + 0.6
+    );
 
-      const rightSway =
-        Math.sin(seconds * 0.48 + 2.1) *
-        ARM_SETTINGS.swayAmount;
+    addTone(380, 'sine', 0.065, 130, 3.2);
 
-      armPose.bones.forEach((bone, index) => {
+  }
 
-        // Always restore the original pose first.
-        // Otherwise rotations accumulate and
-        // eventually deform the model.
-        bone.quaternion.copy(
-          armPose.originals[index]
-        );
+  // WHALE:
+  // Deep, slowly changing song.
+  else if (type === 4) {
 
-        const floating =
-          index === 0
-            ? leftFloat
-            : rightFloat;
+    addTone(62, 'sine', 0.40, 19, 0.16);
+    addTone(124, 'sine', 0.14, 31, 0.21);
+    addTone(190, 'sine', 0.06, 42, 0.12);
 
-        const swaying =
-          index === 0
-            ? leftSway
-            : rightSway;
+  }
 
-        bone.rotateX(floating);
-        bone.rotateY(swaying);
-      });
+  // BLUE WHALE:
+  // Extremely deep, powerful distant call.
+  else {
 
-      // Check whether the head has moved.
-      const currentHeadRotation =
-        cameraEl.object3D.quaternion.clone();
+    addTone(28, 'sine', 0.52, 8, 0.11);
+    addTone(55, 'sine', 0.32, 12, 0.17);
+    addTone(92, 'triangle', 0.10, 17, 0.23);
 
-      let headMovement = 0;
+  }
 
-      if (armPose.previousHeadRotation) {
+  // Fade in and out to avoid abrupt sounds.
+  const peak =
+    SETTINGS.creatureVolume *
+    (
+      type === 1 ? 0.30 :
+      type === 2 ? 0.48 :
+      type === 3 ? 0.65 :
+      type === 4 ? 0.85 :
+      1.0
+    );
 
-        headMovement =
-          armPose.previousHeadRotation.angleTo(
-            currentHeadRotation
-          );
-      }
+  output.gain.setValueAtTime(0.001, now);
 
-      armPose.previousHeadRotation.copy(
-        currentHeadRotation
-      );
+  output.gain.linearRampToValueAtTime(
+    peak,
+    now + Math.min(0.8, duration * 0.2)
+  );
 
-      const now = seconds * 1000;
+  output.gain.setValueAtTime(
+    peak,
+    now + Math.max(0.8, duration - 1.2)
+  );
 
-      const timeSinceBubble =
-        now - armPose.lastBubbleTime;
+  output.gain.linearRampToValueAtTime(
+    0.001,
+    now + duration
+  );
 
-      // Produce occasional bubbles from normal
-      // floating and extra bubbles on head movement.
-      //
-      // The movement threshold avoids creating
-      // a constant stream when the user is still.
-      const headIsMoving =
-        headMovement > 0.005;
+  const position = new THREE.Vector3();
 
-      const naturalArmMotion =
-        Math.sin(seconds * 1.3) > 0.75;
+  creatureEl.object3D.getWorldPosition(position);
 
-      if (
-        isDiving &&
-        currentDepth >= 3 &&
-        timeSinceBubble >
-          ARM_SETTINGS.bubbleInterval &&
-        (headIsMoving || naturalArmMotion)
-      ) {
+  setPannerPosition(panner, position);
 
-        // Update bone world transforms before
-        // reading the hand positions.
-        diverArms.object3D.updateMatrixWorld(true);
+  return {
 
-        if (Math.random() < 0.75) {
-          spawnArmBubble(armPose.leftHand);
-        }
+    panner,
+    output,
+    oscillators,
 
-        if (Math.random() < 0.75) {
-          spawnArmBubble(armPose.rightHand);
-        }
+    expiresAt:
+      performance.now() + duration * 1000,
 
-        armPose.lastBubbleTime = now;
-      }
-    }
-
-    // =====================================================
-    // AUDIO ENGINE
-    // =====================================================
-
-    let audioCtx = null;
-    let ambientGain = null;
-    let bassOsc = null;
-    let bassGain = null;
-    let masterGain = null;
-    let breatheGain = null;
-
-    function initAudio() {
-
-      if (audioCtx) return;
+    stop() {
 
       try {
+        output.disconnect();
+        panner.disconnect();
+      } catch (error) {}
 
-        const AudioContext =
-          window.AudioContext ||
-          window.webkitAudioContext;
+    }
+  };
+}
 
-        audioCtx = new AudioContext();
+function setPannerPosition(panner, position) {
 
-        masterGain = audioCtx.createGain();
+  if (panner.positionX) {
 
-        masterGain.gain.setValueAtTime(
-          isMuted ? 0 : 1,
-          audioCtx.currentTime
-        );
+    panner.positionX.value = position.x;
+    panner.positionY.value = position.y;
+    panner.positionZ.value = position.z;
 
-        masterGain.connect(
-          audioCtx.destination
-        );
+  } else {
 
-        const bufferSize =
-          audioCtx.sampleRate * 2;
+    panner.setPosition(
+      position.x,
+      position.y,
+      position.z
+    );
+  }
+}
 
-        const noiseBuffer =
-          audioCtx.createBuffer(
-            1,
-            bufferSize,
-            audioCtx.sampleRate
-          );
+// Keep WebAudio listener aligned with the camera.
+function updateAudioListener() {
 
-        const output =
-          noiseBuffer.getChannelData(0);
+  if (!audioCtx) return;
 
-        let b0 = 0;
-        let b1 = 0;
-        let b2 = 0;
-        let b3 = 0;
-        let b4 = 0;
-        let b5 = 0;
-        let b6 = 0;
+  const listener = audioCtx.listener;
 
-        for (let i = 0; i < bufferSize; i++) {
+  const position = new THREE.Vector3();
+  const quaternion = new THREE.Quaternion();
 
-          const white =
-            Math.random() * 2 - 1;
+  cameraEl.object3D.getWorldPosition(position);
+  cameraEl.object3D.getWorldQuaternion(quaternion);
 
-          b0 =
-            0.99886 * b0 +
-            white * 0.0555179;
+  const forward = new THREE.Vector3(0, 0, -1)
+    .applyQuaternion(quaternion);
 
-          b1 =
-            0.99332 * b1 +
-            white * 0.0750759;
+  const up = new THREE.Vector3(0, 1, 0)
+    .applyQuaternion(quaternion);
 
-          b2 =
-            0.96900 * b2 +
-            white * 0.1538520;
+  if (listener.positionX) {
 
-          b3 =
-            0.86650 * b3 +
-            white * 0.3104856;
+    listener.positionX.value = position.x;
+    listener.positionY.value = position.y;
+    listener.positionZ.value = position.z;
 
-          b4 =
-            0.55000 * b4 +
-            white * 0.5329522;
+    listener.forwardX.value = forward.x;
+    listener.forwardY.value = forward.y;
+    listener.forwardZ.value = forward.z;
 
-          b5 =
-            -0.7616 * b5 -
-            white * 0.0168980;
+    listener.upX.value = up.x;
+    listener.upY.value = up.y;
+    listener.upZ.value = up.z;
 
-          output[i] = (
-            b0 + b1 + b2 + b3 +
-            b4 + b5 + b6 +
-            white * 0.5362
-          ) * 0.08;
+  } else {
 
-          b6 = white * 0.115926;
-        }
+    listener.setPosition(
+      position.x,
+      position.y,
+      position.z
+    );
 
-        const whiteNoise =
-          audioCtx.createBufferSource();
+    listener.setOrientation(
+      forward.x,
+      forward.y,
+      forward.z,
+      up.x,
+      up.y,
+      up.z
+    );
+  }
+}
 
-        whiteNoise.buffer = noiseBuffer;
-        whiteNoise.loop = true;
+function updateCreatureAudio(now) {
 
-        const filter =
-          audioCtx.createBiquadFilter();
+  const worldPosition = new THREE.Vector3();
 
-        filter.type = 'lowpass';
+  for (let i = activeCreatures.length - 1; i >= 0; i--) {
 
-        filter.frequency.setValueAtTime(
-          400,
-          audioCtx.currentTime
-        );
+    const creature = activeCreatures[i];
 
-        ambientGain =
-          audioCtx.createGain();
+    if (
+      !creature.element.isConnected ||
+      now > creature.audio.expiresAt
+    ) {
 
-        ambientGain.gain.setValueAtTime(
-          0.25,
-          audioCtx.currentTime
-        );
+      creature.audio.stop();
+      activeCreatures.splice(i, 1);
 
-        breatheGain =
-          audioCtx.createGain();
-
-        breatheGain.gain.setValueAtTime(
-          0.001,
-          audioCtx.currentTime
-        );
-
-        const breatheFilter =
-          audioCtx.createBiquadFilter();
-
-        breatheFilter.type = 'bandpass';
-
-        breatheFilter.frequency.setValueAtTime(
-          800,
-          audioCtx.currentTime
-        );
-
-        breatheFilter.Q.setValueAtTime(
-          1.2,
-          audioCtx.currentTime
-        );
-
-        whiteNoise.connect(filter);
-        filter.connect(ambientGain);
-        ambientGain.connect(masterGain);
-
-        whiteNoise.connect(breatheFilter);
-        breatheFilter.connect(breatheGain);
-        breatheGain.connect(masterGain);
-
-        whiteNoise.start();
-
-        bassOsc =
-          audioCtx.createOscillator();
-
-        bassGain =
-          audioCtx.createGain();
-
-        bassOsc.type = 'sine';
-
-        bassOsc.frequency.setValueAtTime(
-          50,
-          audioCtx.currentTime
-        );
-
-        bassGain.gain.setValueAtTime(
-          0.01,
-          audioCtx.currentTime
-        );
-
-        bassOsc.connect(bassGain);
-        bassGain.connect(masterGain);
-        bassOsc.start();
-
-        scheduleHeartbeat();
-        scheduleBreathing();
-
-      } catch (error) {
-
-        console.warn(
-          'Audio initialization failed:',
-          error
-        );
-      }
+      continue;
     }
 
-    // =====================================================
-    // BREATHING BUBBLES
-    // =====================================================
+    creature.element.object3D.getWorldPosition(
+      worldPosition
+    );
 
-    function scheduleBreathing() {
+    setPannerPosition(
+      creature.audio.panner,
+      worldPosition
+    );
+  }
+}
 
-      if (
-        !isDiving ||
-        currentDepth < 3 ||
-        isMuted ||
-        !audioCtx
-      ) {
+// ======================================================
+// BREATHING
+// ======================================================
 
-        setTimeout(
-          scheduleBreathing,
-          1000
-        );
+function scheduleBreathing() {
 
-        return;
-      }
+  if (!audioCtx) return;
 
-      const rate =
-        1 +
-        (currentDepth / maxDepth) * 2;
+  if (isDiving && !isMuted) {
 
-      const breathDur =
-        4500 / rate;
+    const now = audioCtx.currentTime;
 
-      const now =
-        audioCtx.currentTime;
+    const rate =
+      1 + (currentDepth / SETTINGS.maxDepth) * 1.7;
 
-      breatheGain.gain.cancelScheduledValues(
-        now
-      );
+    const duration =
+      4.2 / rate;
 
-      breatheGain.gain.setValueAtTime(
-        0.001,
-        now
-      );
+    breathingGain.gain.cancelScheduledValues(now);
 
-      breatheGain.gain.linearRampToValueAtTime(
-        0.18,
-        now + (breathDur / 1000) * 0.3
-      );
+    breathingGain.gain.setValueAtTime(
+      0.001,
+      now
+    );
 
-      breatheGain.gain.linearRampToValueAtTime(
-        0.001,
-        now + (breathDur / 1000) * 0.9
-      );
+    breathingGain.gain.linearRampToValueAtTime(
+      SETTINGS.breathingVolume,
+      now + duration * 0.35
+    );
 
-      const bubbleCount =
-        3 + Math.floor(Math.random() * 4);
+    breathingGain.gain.linearRampToValueAtTime(
+      0.001,
+      now + duration * 0.9
+    );
 
-      for (let i = 0; i < bubbleCount; i++) {
+    if (currentDepth > 3) {
+
+      for (let i = 0; i < 5; i++) {
 
         setTimeout(
           spawnPlayerBubble,
-          i * 150
+          i * 140
         );
       }
+    }
+  }
 
-      setTimeout(
-        scheduleBreathing,
-        breathDur
-      );
+  const delay =
+    4200 /
+    (
+      1 +
+      (currentDepth / SETTINGS.maxDepth) * 1.7
+    );
+
+  breathingTimer =
+    setTimeout(scheduleBreathing, delay);
+}
+
+function spawnPlayerBubble() {
+
+  if (!isDiving || currentDepth < 3) return;
+
+  const container =
+    document.getElementById('player-bubbles');
+
+  const bubble =
+    document.createElement('a-sphere');
+
+  const x =
+    (Math.random() - 0.5) * 0.2;
+
+  const z =
+    -0.35 + Math.random() * 0.1;
+
+  bubble.setAttribute(
+    'position',
+    `${x} -0.3 ${z}`
+  );
+
+  bubble.setAttribute(
+    'radius',
+    0.012 + Math.random() * 0.018
+  );
+
+  bubble.setAttribute(
+    'material',
+    'shader: flat; color: #e7fbff; transparent: true; opacity: 0.5; depthWrite: false'
+  );
+
+  bubble.setAttribute(
+    'animation__rise',
+    `property: position; to: ${x * 2} 2.5 ${z}; dur: 2400; easing: easeOutSine`
+  );
+
+  bubble.setAttribute(
+    'animation__fade',
+    'property: material.opacity; from: 0.5; to: 0; dur: 2400'
+  );
+
+  container.appendChild(bubble);
+
+  setTimeout(() => bubble.remove(), 2500);
+}
+
+// ======================================================
+// HEARTBEAT
+// ======================================================
+
+function scheduleHeartbeat() {
+
+  if (audioCtx && isDiving && !isMuted) {
+
+    const now = audioCtx.currentTime;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'triangle';
+
+    osc.frequency.setValueAtTime(
+      48,
+      now
+    );
+
+    osc.frequency.exponentialRampToValueAtTime(
+      28,
+      now + 0.18
+    );
+
+    gain.gain.setValueAtTime(
+      0.15 +
+      (currentDepth / SETTINGS.maxDepth) * 0.22,
+      now
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      now + 0.2
+    );
+
+    osc.connect(gain);
+    gain.connect(masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.21);
+  }
+
+  heartbeatTimer = setTimeout(
+    scheduleHeartbeat,
+    Math.max(
+      380,
+      1250 -
+      (currentDepth / SETTINGS.maxDepth) * 850
+    )
+  );
+}
+
+function updateAudioParams() {
+
+  if (!audioCtx) return;
+
+  const ratio =
+    currentDepth / SETTINGS.maxDepth;
+
+  oceanGain.gain.setTargetAtTime(
+    SETTINGS.oceanVolume + ratio * 0.25,
+    audioCtx.currentTime,
+    0.5
+  );
+
+  bassGain.gain.setTargetAtTime(
+    0.04 + ratio * SETTINGS.bassVolume,
+    audioCtx.currentTime,
+    0.5
+  );
+
+  bassOsc.frequency.setTargetAtTime(
+    48 - ratio * 20,
+    audioCtx.currentTime,
+    0.5
+  );
+}
+
+// ======================================================
+// HUMAN ARMS
+// ======================================================
+
+diverArms.addEventListener('model-loaded', () => {
+
+  const model =
+    diverArms.getObject3D('mesh');
+
+  if (!model) return;
+
+  const bones = {};
+
+  let sampledSkinColor = new THREE.Color('#b68b75');
+
+  model.traverse(object => {
+
+    if (object.isBone) {
+      bones[object.name] = object;
     }
 
-    function spawnPlayerBubble() {
+    if (object.isSkinnedMesh) {
 
-      if (!isDiving || currentDepth < 3) {
-        return;
-      }
+      object.frustumCulled = false;
 
-      const container =
-        document.getElementById('player-bubbles');
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
 
-      if (!container) return;
+      materials.forEach(material => {
 
-      const bubble =
-        document.createElement('a-sphere');
+        if (!material) return;
 
-      const startX =
-        (Math.random() - 0.5) * 0.2;
+        material.side = THREE.DoubleSide;
 
-      const startZ =
-        -0.3 +
-        (Math.random() - 0.5) * 0.1;
-
-      bubble.setAttribute(
-        'position',
-        `${startX} -0.3 ${startZ}`
-      );
-
-      bubble.setAttribute(
-        'radius',
-        0.015 + Math.random() * 0.02
-      );
-
-      bubble.setAttribute(
-        'material',
-        'shader: flat; color: #ffffff; transparent: true; opacity: 0.5'
-      );
-
-      bubble.setAttribute(
-        'animation',
-        `property: position; to: ${startX * 2} 2.5 ${startZ * 1.5}; dur: ${2000 + Math.random() * 1000}; easing: easeInSine`
-      );
-
-      container.appendChild(bubble);
-
-      setTimeout(() => {
-
-        if (bubble.parentNode) {
-          bubble.parentNode.removeChild(bubble);
+        if (material.color) {
+          sampledSkinColor.copy(material.color);
         }
-
-      }, 3000);
+      });
     }
+  });
 
-    // =====================================================
-    // HEARTBEAT
-    // =====================================================
+  const leftShoulder =
+    bones['upperarm_l_02'];
 
-    function playHeartbeatSound() {
+  const rightShoulder =
+    bones['upperarm_r_020'];
 
-      if (
-        !audioCtx ||
-        !isDiving ||
-        isMuted
-      ) {
-        return;
-      }
+  const leftHand =
+    bones['hand_l_04'];
 
-      try {
+  const rightHand =
+    bones['hand_r_022'];
 
-        const osc =
-          audioCtx.createOscillator();
+  if (
+    !leftShoulder ||
+    !rightShoulder ||
+    !leftHand ||
+    !rightHand
+  ) {
 
-        const gain =
-          audioCtx.createGain();
+    console.error(
+      'Arm skeleton not found:',
+      Object.keys(bones)
+    );
 
-        osc.type = 'triangle';
+    return;
+  }
 
-        const freq =
-          45 +
-          (currentDepth / maxDepth) * 45;
+  model.position.set(0, 0, 0);
+  model.rotation.set(0, 0, 0);
+  model.scale.set(1, 1, 1);
 
-        const vol =
-          0.08 +
-          (currentDepth / maxDepth) * 0.45;
+  diverArms.object3D.position.set(0, 0, 0);
+  diverArms.object3D.rotation.set(0, 0, 0);
+  diverArms.object3D.scale.setScalar(1);
 
-        osc.frequency.setValueAtTime(
-          freq,
-          audioCtx.currentTime
-        );
+  model.updateMatrixWorld(true);
 
-        osc.frequency.exponentialRampToValueAtTime(
-          25,
-          audioCtx.currentTime + 0.16
-        );
+  function modelLocalPosition(bone) {
 
-        gain.gain.setValueAtTime(
-          vol,
-          audioCtx.currentTime
-        );
+    const point = new THREE.Vector3();
 
-        gain.gain.exponentialRampToValueAtTime(
-          0.001,
-          audioCtx.currentTime + 0.18
-        );
+    bone.getWorldPosition(point);
 
-        osc.connect(gain);
-        gain.connect(masterGain);
+    return model.parent.worldToLocal(point);
+  }
 
-        osc.start();
+  const ls = modelLocalPosition(leftShoulder);
+  const rs = modelLocalPosition(rightShoulder);
 
-        osc.stop(
-          audioCtx.currentTime + 0.2
-        );
+  const lh = modelLocalPosition(leftHand);
+  const rh = modelLocalPosition(rightHand);
 
-      } catch (error) {}
-    }
+  const shoulderMid =
+    ls.clone().add(rs).multiplyScalar(0.5);
 
-    function scheduleHeartbeat() {
+  const handMid =
+    lh.clone().add(rh).multiplyScalar(0.5);
 
-      playHeartbeatSound();
+  const across =
+    rh.clone().sub(lh).normalize();
 
-      const factor =
-        Math.min(
-          currentDepth / maxDepth,
-          1
-        );
+  const forward =
+    handMid.clone().sub(shoulderMid).normalize();
 
-      const nextDelay =
-        1300 - factor * 950;
+  const up =
+    new THREE.Vector3()
+      .crossVectors(across, forward)
+      .normalize();
 
-      setTimeout(
-        scheduleHeartbeat,
-        nextDelay
-      );
-    }
+  const front =
+    new THREE.Vector3()
+      .crossVectors(across, up)
+      .normalize();
 
-    function updateAudioParams(depth) {
+  const sourceBasis =
+    new THREE.Matrix4().makeBasis(
+      across,
+      up,
+      front
+    );
 
-      if (
-        !audioCtx ||
-        !ambientGain ||
-        !bassGain
-      ) {
-        return;
-      }
-
-      const ratio =
-        Math.min(depth / maxDepth, 1);
-
-      bassGain.gain.setTargetAtTime(
-        0.02 + ratio * 0.5,
-        audioCtx.currentTime,
-        0.4
+  const rotation =
+    new THREE.Quaternion()
+      .setFromRotationMatrix(
+        sourceBasis.clone().invert()
       );
 
-      bassOsc.frequency.setTargetAtTime(
-        50 - ratio * 22,
-        audioCtx.currentTime,
-        0.4
-      );
-    }
+  diverArms.object3D.quaternion.copy(rotation);
 
-    // =====================================================
-    // MARINE SNOW
-    // =====================================================
+  const averageLength =
+    (
+      ls.distanceTo(lh) +
+      rs.distanceTo(rh)
+    ) / 2;
 
-    function setupProceduralElements() {
+  const scale =
+    SETTINGS.armLength /
+    Math.max(averageLength, 0.001);
 
-      const container =
-        document.getElementById(
-          'particle-container'
-        );
+  diverArms.object3D.scale.setScalar(scale);
 
-      if (
-        !container ||
-        container.children.length > 0
-      ) {
-        return;
-      }
+  const rotatedShoulderMid =
+    shoulderMid
+      .clone()
+      .applyQuaternion(rotation)
+      .multiplyScalar(scale);
 
-      for (let i = 0; i < 75; i++) {
+  diverArms.object3D.position.set(
+    -rotatedShoulderMid.x,
+    SETTINGS.shoulderY - rotatedShoulderMid.y,
+    SETTINGS.shoulderZ - rotatedShoulderMid.z
+  );
 
-        const particle =
-          document.createElement('a-sphere');
+  leftShoulder.rotateZ(
+    -SETTINGS.armSpread
+  );
 
-        const x =
-          (Math.random() - 0.5) * 28;
+  rightShoulder.rotateZ(
+    SETTINGS.armSpread
+  );
 
-        const y =
-          (Math.random() - 0.5) * 28;
+  armState.shoulders = [
+    leftShoulder,
+    rightShoulder
+  ];
 
-        const z =
-          (Math.random() - 0.5) * 28;
+  armState.originalRotations =
+    armState.shoulders.map(
+      bone => bone.quaternion.clone()
+    );
 
-        const radius =
-          Math.random() * 0.008 + 0.002;
+  armState.hands = [
+    leftHand,
+    rightHand
+  ];
 
-        const opacity =
-          Math.random() * 0.18 + 0.05;
+  armState.basePosition =
+    diverArms.object3D.position.clone();
 
-        particle.setAttribute(
-          'position',
-          `${x} ${y} ${z}`
-        );
+  armState.lastHeadQuaternion =
+    cameraEl.object3D.quaternion.clone();
 
-        particle.setAttribute(
-          'radius',
-          radius
-        );
+  // --------------------------------------------------
+  // SHOULDER EXTENSIONS
+  // --------------------------------------------------
+  //
+  // The GLB arms are cut off at the shoulders.
+  // These tapered pieces continue down toward
+  // the viewer to conceal the abrupt ends.
+  //
+  // They follow the shoulders but are not attached
+  // to the deforming skeleton.
+  // --------------------------------------------------
 
-        particle.setAttribute(
-          'material',
-          `shader: flat; color: #ffffff; transparent: true; opacity: ${opacity}; depthWrite: false`
-        );
+  const extensionMaterial =
+    new THREE.MeshStandardMaterial({
 
-        container.appendChild(particle);
-      }
-    }
+      color: sampledSkinColor,
+      roughness: 0.95,
+      metalness: 0,
+      side: THREE.DoubleSide
 
-    // =====================================================
-    // COLOR UTILITIES
-    // =====================================================
+    });
 
-    function hexToRgb(hex) {
+  const extensionGeometry =
+    new THREE.CylinderGeometry(
+      0.16,
+      0.27,
+      SETTINGS.shoulderExtensionLength,
+      20,
+      1,
+      false
+    );
 
-      const value =
-        parseInt(hex.replace('#', ''), 16);
+  for (let i = 0; i < 2; i++) {
 
-      return [
-        (value >> 16) & 255,
-        (value >> 8) & 255,
-        value & 255
-      ];
-    }
+    const extension = new THREE.Mesh(
+      extensionGeometry,
+      extensionMaterial
+    );
 
-    function rgbToHex(r, g, b) {
+    extension.frustumCulled = false;
 
-      return '#' +
-        [r, g, b]
-          .map(value =>
-            Math.round(value)
-              .toString(16)
-              .padStart(2, '0')
-          )
-          .join('');
-    }
+    armAnchor.object3D.add(extension);
 
-    function interpolateColor(a, b, t) {
+    armState.shoulderExtensions.push(extension);
+  }
 
-      const c1 = hexToRgb(a);
-      const c2 = hexToRgb(b);
+  armState.ready = true;
 
-      return rgbToHex(
-        c1[0] + (c2[0] - c1[0]) * t,
-        c1[1] + (c2[1] - c1[1]) * t,
-        c1[2] + (c2[2] - c1[2]) * t
-      );
-    }
+  console.log('Diver arms loaded.');
+});
 
-    // =====================================================
-    // WATER SURFACE ANIMATION
-    // =====================================================
+diverArms.addEventListener('model-error', error => {
 
-    function animateWaterSurface(time) {
+  console.error(
+    'Failed to load rigged_arms.glb',
+    error
+  );
+});
 
-      const surface =
-        document.getElementById(
-          'water-surface'
-        );
+// ======================================================
+// SHOULDER EXTENSION POSITIONING
+// ======================================================
 
-      if (!surface) return;
+function updateShoulderExtensions() {
 
-      const mesh =
-        surface.getObject3D('mesh');
+  if (!armState.ready) return;
 
-      if (!mesh) return;
+  const anchor = armAnchor.object3D;
 
-      const geometry = mesh.geometry;
-      const positions =
-        geometry.attributes.position;
+  anchor.updateMatrixWorld(true);
 
-      const t = time * 0.001;
+  const shoulderWorld = new THREE.Vector3();
+  const shoulderLocal = new THREE.Vector3();
+
+  for (let i = 0; i < 2; i++) {
+
+    const shoulder =
+      armState.shoulders[i];
+
+    const extension =
+      armState.shoulderExtensions[i];
+
+    shoulder.getWorldPosition(shoulderWorld);
+
+    shoulderLocal.copy(shoulderWorld);
+
+    anchor.worldToLocal(shoulderLocal);
+
+    // Extend backward and downward toward the
+    // player's body, instead of stopping at the
+    // shoulder cap.
+    const end = shoulderLocal.clone().add(
+      new THREE.Vector3(
+        i === 0 ? -0.12 : 0.12,
+        -SETTINGS.shoulderExtensionLength * 0.88,
+        0.23
+      )
+    );
+
+    const direction =
+      end.clone().sub(shoulderLocal);
+
+    extension.position.copy(
+      shoulderLocal.clone().add(end).multiplyScalar(0.5)
+    );
+
+    extension.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      direction.clone().normalize()
+    );
+
+    extension.scale.set(
+      1,
+      direction.length() /
+        SETTINGS.shoulderExtensionLength,
+      1
+    );
+  }
+}
+
+// ======================================================
+// HAND BUBBLES
+// ======================================================
+//
+// More noticeable than before:
+// - multiple bubbles per hand
+// - larger bubbles
+// - visible bright highlights
+// - upward movement
+// - small translucent rings
+// ======================================================
+
+function spawnHandBubble(handBone) {
+
+  if (!isDiving || currentDepth < 3) return;
+
+  const origin = new THREE.Vector3();
+
+  handBone.getWorldPosition(origin);
+
+  const start = origin.clone().add(
+    new THREE.Vector3(
+      (Math.random() - 0.5) * 0.22,
+      (Math.random() - 0.5) * 0.12,
+      (Math.random() - 0.5) * 0.22
+    )
+  );
+
+  const end = start.clone().add(
+    new THREE.Vector3(
+      (Math.random() - 0.5) * 0.4,
+      0.55 + Math.random() * 0.65,
+      (Math.random() - 0.5) * 0.3
+    )
+  );
+
+  const radius =
+    SETTINGS.handBubbleSize *
+    (0.6 + Math.random() * 1.1);
+
+  const bubble =
+    document.createElement('a-sphere');
+
+  bubble.setAttribute('radius', radius);
+
+  bubble.setAttribute(
+    'position',
+    `${start.x} ${start.y} ${start.z}`
+  );
+
+  bubble.setAttribute(
+    'material',
+    'shader: flat; color: #d9f9ff; transparent: true; opacity: 0.78; depthWrite: false'
+  );
+
+  const duration =
+    1100 + Math.random() * 650;
+
+  bubble.setAttribute(
+    'animation__rise',
+    `property: position; to: ${end.x} ${end.y} ${end.z}; dur: ${duration}; easing: easeOutSine`
+  );
+
+  bubble.setAttribute(
+    'animation__fade',
+    `property: material.opacity; from: 0.78; to: 0; dur: ${duration}; easing: linear`
+  );
+
+  sceneEl.appendChild(bubble);
+
+  setTimeout(
+    () => bubble.remove(),
+    duration + 100
+  );
+}
+
+function spawnHandBubbleRing(handBone) {
+
+  if (!isDiving || currentDepth < 3) return;
+
+  const origin = new THREE.Vector3();
+
+  handBone.getWorldPosition(origin);
+
+  const ring = document.createElement('a-ring');
+
+  ring.setAttribute(
+    'position',
+    `${origin.x} ${origin.y} ${origin.z}`
+  );
+
+  ring.setAttribute('radius-inner', 0.035);
+  ring.setAttribute('radius-outer', 0.043);
+
+  ring.setAttribute(
+    'material',
+    'shader: flat; color: #a7f4ff; transparent: true; opacity: 0.55; side: double; depthWrite: false'
+  );
+
+  ring.setAttribute(
+    'animation__expand',
+    'property: scale; from: 1 1 1; to: 4 4 4; dur: 800; easing: easeOutSine'
+  );
+
+  ring.setAttribute(
+    'animation__fade',
+    'property: material.opacity; from: 0.55; to: 0; dur: 800'
+  );
+
+  sceneEl.appendChild(ring);
+
+  setTimeout(
+    () => ring.remove(),
+    850
+  );
+}
+
+// ======================================================
+// ARM ANIMATION
+// ======================================================
+
+function animateArms(seconds) {
+
+  if (!armState.ready) return;
+
+  const pitch =
+    cameraEl.object3D.rotation.x;
+
+  // Partial pitch compensation.
+  //
+  // The arms do not rotate completely with
+  // the user's head, but also do not swing
+  // all the way into view when looking down.
+  armAnchor.object3D.rotation.x =
+    -pitch * SETTINGS.headPitchCompensation;
+
+  const lookingDown =
+    Math.max(0, -pitch);
+
+  // Lower the entire arm anchor as the head
+  // looks down so the shoulder extensions
+  // stay below the central field of view.
+  armAnchor.object3D.position.y =
+    -lookingDown * 0.45;
+
+  armAnchor.object3D.position.z =
+    -lookingDown * 0.08;
+
+  const floatY =
+    Math.sin(seconds * 0.55) * 0.04;
+
+  const swayX =
+    Math.sin(seconds * 0.37) * 0.025;
+
+  diverArms.object3D.position.set(
+    armState.basePosition.x + swayX,
+    armState.basePosition.y + floatY,
+    armState.basePosition.z
+  );
+
+  for (let i = 0; i < 2; i++) {
+
+    const bone = armState.shoulders[i];
+
+    bone.quaternion.copy(
+      armState.originalRotations[i]
+    );
+
+    const phase =
+      i === 0 ? 0 : 1.4;
+
+    const floating =
+      Math.sin(seconds * 0.72 + phase) *
+      SETTINGS.armFloat;
+
+    const swaying =
+      Math.sin(seconds * 0.46 + phase) *
+      SETTINGS.armSway;
+
+    bone.rotateX(floating);
+    bone.rotateY(swaying);
+  }
+
+  diverArms.object3D.updateMatrixWorld(true);
+
+  updateShoulderExtensions();
+
+  // Determine whether the head is moving.
+  const headQuaternion =
+    cameraEl.object3D.quaternion.clone();
+
+  const movement =
+    armState.lastHeadQuaternion
+      ? armState.lastHeadQuaternion.angleTo(
+          headQuaternion
+        )
+      : 0;
+
+  armState.lastHeadQuaternion.copy(
+    headQuaternion
+  );
+
+  const now = seconds * 1000;
+
+  const timeSinceBubbles =
+    now - armState.lastBubbleTime;
+
+  const movingHead =
+    movement > 0.003;
+
+  const floatingArms =
+    Math.sin(seconds * 1.2) > 0.45;
+
+  if (
+    isDiving &&
+    currentDepth >= 3 &&
+    timeSinceBubbles >
+      SETTINGS.handBubbleInterval &&
+    (movingHead || floatingArms)
+  ) {
+
+    for (const hand of armState.hands) {
 
       for (
         let i = 0;
-        i < positions.count;
+        i < SETTINGS.handBubbleCount;
         i++
       ) {
 
-        const x = positions.getX(i);
-        const y = positions.getY(i);
-
-        const wave =
-          Math.sin(x * 0.08 + t * 0.7) * 0.45 +
-          Math.sin(y * 0.11 + t * 0.5) * 0.3 +
-          Math.sin((x + y) * 0.06 + t) * 0.2;
-
-        positions.setZ(
-          i,
-          wave * 0.35
-        );
+        spawnHandBubble(hand);
       }
 
-      positions.needsUpdate = true;
-      geometry.computeVertexNormals();
+      if (Math.random() < 0.45) {
+
+        spawnHandBubbleRing(hand);
+      }
     }
 
-    // =====================================================
-    // DEPTH LIGHTING
-    // =====================================================
+    armState.lastBubbleTime = now;
+  }
+}
 
-    function updateEnvironmentStage(depth) {
+// ======================================================
+// MARINE SNOW
+// ======================================================
 
-      let skyColor;
-      let fogDensity;
-      let sunIntensity;
-      let zoneName;
-      let fogColor;
+function setupMarineSnow() {
 
-      if (depth < 50) {
+  const container =
+    document.getElementById('particle-container');
 
-        const t = Math.min(
-          Math.max((depth - 5) / 45, 0),
-          1
-        );
+  if (container.children.length) return;
 
-        skyColor = interpolateColor(
-          '#88ccff',
-          '#004f77',
-          t
-        );
+  for (let i = 0; i < 75; i++) {
 
-        fogColor = skyColor;
+    const particle =
+      document.createElement('a-sphere');
 
-        fogDensity =
-          0.005 + t * 0.008;
+    const x =
+      (Math.random() - 0.5) * 28;
 
-        sunIntensity =
-          1.8 * (1 - t * 0.6);
+    const y =
+      (Math.random() - 0.5) * 28;
 
-        zoneName =
-          'Phase 1: Epipelagic (Sunlight Zone)';
+    const z =
+      (Math.random() - 0.5) * 28;
 
-        flashlight.setAttribute(
-          'light',
-          'intensity',
-          0
-        );
+    particle.setAttribute(
+      'position',
+      `${x} ${y} ${z}`
+    );
 
-      } else if (depth < 150) {
+    particle.setAttribute(
+      'radius',
+      0.002 + Math.random() * 0.008
+    );
 
-        const t =
-          (depth - 50) / 100;
+    particle.setAttribute(
+      'material',
+      `shader: flat; color: #ffffff; transparent: true; opacity: ${0.05 + Math.random() * 0.18}; depthWrite: false`
+    );
 
-        skyColor = interpolateColor(
-          '#004f77',
-          '#000c14',
-          t
-        );
+    container.appendChild(particle);
+  }
+}
 
-        fogColor = skyColor;
+// ======================================================
+// COLOR UTILITIES
+// ======================================================
 
-        fogDensity =
-          0.013 + t * 0.012;
+function hexToRgb(hex) {
 
-        sunIntensity =
-          0.72 * (1 - t);
+  const n = parseInt(
+    hex.replace('#', ''),
+    16
+  );
 
-        zoneName =
-          'Phase 2: Mesopelagic (Twilight Zone)';
+  return [
+    (n >> 16) & 255,
+    (n >> 8) & 255,
+    n & 255
+  ];
+}
 
-        flashlight.setAttribute(
-          'light',
-          'intensity',
-          t * 0.8
-        );
+function rgbToHex(r, g, b) {
 
-      } else if (depth < 300) {
+  return '#' +
+    [r, g, b].map(value =>
+      Math.round(value)
+        .toString(16)
+        .padStart(2, '0')
+    ).join('');
+}
 
-        const t =
-          (depth - 150) / 150;
+function interpolateColor(a, b, t) {
 
-        skyColor = interpolateColor(
-          '#000c14',
-          '#000204',
-          t
-        );
+  const c1 = hexToRgb(a);
+  const c2 = hexToRgb(b);
 
-        fogColor = skyColor;
+  return rgbToHex(
+    c1[0] + (c2[0] - c1[0]) * t,
+    c1[1] + (c2[1] - c1[1]) * t,
+    c1[2] + (c2[2] - c1[2]) * t
+  );
+}
 
-        fogDensity =
-          0.025 + t * 0.015;
+// ======================================================
+// WATER ANIMATION
+// ======================================================
 
-        sunIntensity = 0;
+function animateWaterSurface(time) {
 
-        zoneName =
-          'Phase 3: Bathypelagic (Midnight Abyss)';
+  const surface =
+    document.getElementById('water-surface');
 
-        flashlight.setAttribute(
-          'light',
-          'intensity',
-          0.8 + t * 0.7
-        );
+  const mesh =
+    surface.getObject3D('mesh');
 
-      } else {
+  if (!mesh) return;
 
-        const t = Math.min(
-          (depth - 300) / 180,
-          1
-        );
+  const positions =
+    mesh.geometry.attributes.position;
 
-        skyColor = '#000204';
-        fogColor = '#000204';
+  const t = time * 0.001;
 
-        fogDensity =
-          0.040 + t * 0.020;
+  for (let i = 0; i < positions.count; i++) {
 
-        sunIntensity = 0;
+    const x = positions.getX(i);
+    const y = positions.getY(i);
 
-        zoneName =
-          'Phase 4: Hadal Trench (The Deep Void)';
+    const wave =
+      Math.sin(x * 0.08 + t * 0.7) * 0.45 +
+      Math.sin(y * 0.11 + t * 0.5) * 0.3 +
+      Math.sin((x + y) * 0.06 + t) * 0.2;
 
-        flashlight.setAttribute(
-          'light',
-          'intensity',
-          1.5 + t * 0.5
-        );
-      }
+    positions.setZ(i, wave * 0.35);
+  }
 
-      oceanSky.setAttribute(
-        'color',
-        skyColor
+  positions.needsUpdate = true;
+
+  mesh.geometry.computeVertexNormals();
+}
+
+// ======================================================
+// ENVIRONMENT
+// ======================================================
+
+function updateEnvironmentStage(depth) {
+
+  let skyColor;
+  let fogDensity;
+  let sunIntensity;
+  let zoneName;
+
+  if (depth < 50) {
+
+    const t =
+      Math.max(0, (depth - 5) / 45);
+
+    skyColor =
+      interpolateColor('#88ccff', '#004f77', t);
+
+    fogDensity =
+      0.005 + t * 0.008;
+
+    sunIntensity =
+      1.8 * (1 - t * 0.6);
+
+    zoneName =
+      'Phase 1: Epipelagic (Sunlight Zone)';
+
+    flashlight.setAttribute(
+      'light',
+      'intensity',
+      0
+    );
+
+  } else if (depth < 150) {
+
+    const t = (depth - 50) / 100;
+
+    skyColor =
+      interpolateColor('#004f77', '#000c14', t);
+
+    fogDensity =
+      0.013 + t * 0.012;
+
+    sunIntensity =
+      0.72 * (1 - t);
+
+    zoneName =
+      'Phase 2: Mesopelagic (Twilight Zone)';
+
+    flashlight.setAttribute(
+      'light',
+      'intensity',
+      t * 0.8
+    );
+
+  } else if (depth < 300) {
+
+    const t = (depth - 150) / 150;
+
+    skyColor =
+      interpolateColor('#000c14', '#000204', t);
+
+    fogDensity =
+      0.025 + t * 0.015;
+
+    sunIntensity = 0;
+
+    zoneName =
+      'Phase 3: Bathypelagic (Midnight Abyss)';
+
+    flashlight.setAttribute(
+      'light',
+      'intensity',
+      0.8 + t * 0.7
+    );
+
+  } else {
+
+    const t =
+      Math.min((depth - 300) / 180, 1);
+
+    skyColor = '#000204';
+
+    fogDensity =
+      0.04 + t * 0.02;
+
+    sunIntensity = 0;
+
+    zoneName =
+      'Phase 4: Hadal Trench (The Deep Void)';
+
+    flashlight.setAttribute(
+      'light',
+      'intensity',
+      1.5 + t * 0.5
+    );
+  }
+
+  oceanSky.setAttribute('color', skyColor);
+
+  sceneEl.setAttribute(
+    'fog',
+    `type: exponential; color: ${skyColor}; density: ${fogDensity}`
+  );
+
+  sunlight.setAttribute(
+    'light',
+    'intensity',
+    sunIntensity
+  );
+
+  ambientLight.setAttribute(
+    'light',
+    'intensity',
+    Math.max(
+      0.9 - depth / SETTINGS.maxDepth * 0.85,
+      0.04
+    )
+  );
+
+  const sun =
+    document.getElementById('surface-sun');
+
+  sun.setAttribute(
+    'visible',
+    depth < 35
+  );
+
+  zoneDisplay.textContent = zoneName;
+}
+
+// ======================================================
+// CREATURES
+// ======================================================
+
+function spawnCreature() {
+
+  const container =
+    document.getElementById('dynamic-creatures');
+
+  const creature =
+    document.createElement('a-entity');
+
+  const rigPosition =
+    cameraRig.object3D.position;
+
+  const cameraRotation =
+    cameraEl.getAttribute('rotation');
+
+  const lookAngle =
+    (cameraRotation.y || 0) *
+    Math.PI / 180;
+
+  const random = Math.random();
+
+  let tier;
+
+  if (currentDepth < 20) {
+
+    tier = 1;
+
+  } else if (currentDepth < 60) {
+
+    tier = random < 0.75 ? 1 : 2;
+
+  } else if (currentDepth < 110) {
+
+    tier =
+      random < 0.60 ? 1 :
+      random < 0.80 ? 2 : 3;
+
+  } else if (currentDepth < 180) {
+
+    tier =
+      random < 0.50 ? 1 :
+      random < 0.65 ? 2 :
+      random < 0.85 ? 3 : 4;
+
+  } else {
+
+    tier =
+      random < 0.40 ? 1 :
+      random < 0.55 ? 2 :
+      random < 0.70 ? 3 :
+      random < 0.85 ? 4 : 5;
+  }
+
+  const side =
+    Math.random() > 0.5 ? 1 : -1;
+
+  const angle =
+    lookAngle + side * Math.PI / 2.5;
+
+  let distance;
+
+  if (tier === 1) {
+    distance = 5 + Math.random() * 5;
+  } else if (tier === 2) {
+    distance = 15 + Math.random() * 10;
+  } else if (tier === 3) {
+    distance = 30 + Math.random() * 15;
+  } else if (tier === 4) {
+    distance = 50 + Math.random() * 20;
+  } else {
+    distance = 70 + Math.random() * 30;
+  }
+
+  const fogFactor =
+    Math.min(currentDepth / 300, 1);
+
+  if (tier > 1) {
+    distance -= fogFactor * distance * 0.25;
+  }
+
+  const spawnX =
+    Math.sin(angle) * distance;
+
+  const spawnZ =
+    Math.cos(angle) * distance;
+
+  const clearance =
+    tier === 1 ? 8 :
+    tier === 2 ? 12 : 25;
+
+  const spawnY = Math.min(
+    rigPosition.y - 2 - Math.random() * 15,
+    4 - clearance
+  );
+
+  creature.setAttribute(
+    'position',
+    `${spawnX} ${spawnY} ${spawnZ}`
+  );
+
+  const targetX =
+    spawnX - Math.sin(lookAngle) * 200;
+
+  const targetZ =
+    spawnZ - Math.cos(lookAngle) * 200;
+
+  const rotationY =
+    Math.atan2(
+      targetX - spawnX,
+      targetZ - spawnZ
+    ) * 180 / Math.PI;
+
+  creature.setAttribute(
+    'rotation',
+    `0 ${rotationY} 0`
+  );
+
+  const creatureModels = {
+
+    1: {
+      file: 'school_of_herring.glb',
+      scale: '5 5 5',
+      duration: 90000
+    },
+
+    2: {
+      file: 'ray.glb',
+      scale: '0.3 0.3 0.3',
+      duration: 30000
+    },
+
+    3: {
+      file: 'dolphin.glb',
+      scale: '45 45 45',
+      duration: 20000
+    },
+
+    4: {
+      file: 'whale.glb',
+      scale: '3 3 3',
+      duration: 45000
+    },
+
+    5: {
+      file: 'blue_whale.glb',
+      scale: '5 5 5',
+      duration: 60000
+    }
+  };
+
+  const config = creatureModels[tier];
+
+  const model =
+    document.createElement('a-gltf-model');
+
+  model.setAttribute(
+    'src',
+    config.file
+  );
+
+  model.setAttribute(
+    'scale',
+    config.scale
+  );
+
+  model.setAttribute(
+    'animation-mixer',
+    'clip: *; timeScale: 1'
+  );
+
+  if (tier === 4) {
+    model.setAttribute(
+      'rotation',
+      '0 180 0'
+    );
+  }
+
+  creature.appendChild(model);
+
+  creature.setAttribute(
+    'animation',
+    `property: position; to: ${targetX} ${spawnY} ${targetZ}; dur: ${config.duration}; easing: linear`
+  );
+
+  container.appendChild(creature);
+
+  // Animal-specific sound.
+  const audio =
+    createCreatureAudio(
+      tier,
+      creature,
+      config.duration
+    );
+
+  if (audio) {
+
+    activeCreatures.push({
+      element: creature,
+      audio
+    });
+  }
+
+  setTimeout(() => {
+
+    creature.remove();
+
+  }, config.duration + 1000);
+}
+
+// ======================================================
+// MAIN LOOP
+// ======================================================
+
+function animateDescent(timestamp) {
+
+  animateWaterSurface(timestamp);
+
+  animateArms(timestamp * 0.001);
+
+  if (!lastTimestamp) {
+    lastTimestamp = timestamp;
+  }
+
+  const dt = Math.min(
+    (timestamp - lastTimestamp) / 1000,
+    0.1
+  );
+
+  lastTimestamp = timestamp;
+
+  if (isDiving) {
+
+    if (currentDepth < SETTINGS.maxDepth) {
+
+      currentDepth +=
+        SETTINGS.descentSpeed * dt;
+
+      currentDepth = Math.min(
+        currentDepth,
+        SETTINGS.maxDepth
       );
 
-      sceneEl.setAttribute(
-        'fog',
-        `type: exponential; color: ${fogColor}; density: ${fogDensity}`
-      );
+      cameraRig.object3D.position.y =
+        7 - currentDepth;
 
-      sunlight.setAttribute(
-        'light',
-        'intensity',
-        sunIntensity
-      );
+      depthDisplay.textContent =
+        currentDepth.toFixed(1);
 
-      ambientLight.setAttribute(
-        'light',
-        'intensity',
+      updateEnvironmentStage(currentDepth);
+
+      updateAudioParams();
+
+      const surface =
+        document.getElementById('water-surface');
+
+      const fade = Math.min(
         Math.max(
-          0.9 -
-            (depth / maxDepth) * 0.85,
-          0.04
-        )
+          (currentDepth - 2.5) / 7.5,
+          0
+        ),
+        1
       );
 
-      const sun =
-        document.getElementById(
-          'surface-sun'
-        );
+      surface.setAttribute(
+        'visible',
+        fade < 1
+      );
 
-      if (sun) {
+      surface.setAttribute(
+        'material',
+        'opacity',
+        0.72 * (1 - fade)
+      );
 
-        const fade = Math.min(
-          Math.max((depth - 5) / 30, 0),
-          1
-        );
+      const colossal =
+        document.getElementById('colossal-entity');
 
-        sun.setAttribute(
-          'material',
-          'color',
-          interpolateColor(
-            '#ffcc00',
-            '#f0f4ff',
-            fade
-          )
-        );
+      if (currentDepth >= 350) {
 
-        sun.setAttribute(
-          'visible',
-          depth < 35
-        );
+        colossal.object3D.position.y =
+          -50 + Math.sin(timestamp * 0.0015) * 2;
       }
-
-      zoneDisplay.textContent = zoneName;
     }
 
-    // =====================================================
-    // SEA CREATURES
-    // =====================================================
-
-    function spawnCreepyCreature() {
-
-      const container =
-        document.getElementById(
-          'dynamic-creatures'
-        );
-
-      if (!container) return;
-
-      const creature =
-        document.createElement('a-entity');
-
-      const rigPos =
-        cameraRig.getAttribute('position');
-
-      const camRot =
-        cameraEl.getAttribute('rotation');
-
-      const lookAngle = camRot
-        ? camRot.y * Math.PI / 180
-        : 0;
-
-      const r = Math.random();
-
-      let tier = 1;
-
-      if (currentDepth < 20) {
-
-        tier = 1;
-
-      } else if (currentDepth < 60) {
-
-        tier = r < 0.75 ? 1 : 2;
-
-      } else if (currentDepth < 110) {
-
-        if (r < 0.60) tier = 1;
-        else if (r < 0.80) tier = 2;
-        else tier = 3;
-
-      } else if (currentDepth < 180) {
-
-        if (r < 0.50) tier = 1;
-        else if (r < 0.65) tier = 2;
-        else if (r < 0.85) tier = 3;
-        else tier = 4;
-
-      } else {
-
-        if (r < 0.40) tier = 1;
-        else if (r < 0.55) tier = 2;
-        else if (r < 0.70) tier = 3;
-        else if (r < 0.85) tier = 4;
-        else tier = 5;
-      }
-
-      const side =
-        Math.random() > 0.5 ? 1 : -1;
-
-      const angle =
-        lookAngle +
-        side * Math.PI / 2.5;
-
-      const fogFactor =
-        Math.min(currentDepth / 300, 1);
-
-      let dist;
-
-      if (tier === 1) {
-        dist = 5 + Math.random() * 5;
-      } else if (tier === 2) {
-        dist = 15 + Math.random() * 10;
-      } else if (tier === 3) {
-        dist = 30 + Math.random() * 15;
-      } else if (tier === 4) {
-        dist = 50 + Math.random() * 20;
-      } else {
-        dist = 70 + Math.random() * 30;
-      }
-
-      if (tier > 1) {
-        dist -= fogFactor * dist * 0.25;
-      }
-
-      const spawnX =
-        Math.sin(angle) * dist;
-
-      const spawnZ =
-        Math.cos(angle) * dist;
-
-      const underwaterY =
-        rigPos.y - 2 -
-        Math.random() * 15;
-
-      const clearance =
-        tier === 1 ? 8 :
-        tier === 2 ? 12 : 25;
-
-      const spawnY = Math.min(
-        underwaterY,
-        4 - clearance
-      );
-
-      creature.setAttribute(
-        'position',
-        `${spawnX} ${spawnY} ${spawnZ}`
-      );
-
-      const targetX =
-        spawnX -
-        Math.sin(lookAngle) * 200;
-
-      const targetZ =
-        spawnZ -
-        Math.cos(lookAngle) * 200;
-
-      const rotationY =
-        Math.atan2(
-          targetX - spawnX,
-          targetZ - spawnZ
-        ) * 180 / Math.PI;
-
-      creature.setAttribute(
-        'rotation',
-        `0 ${rotationY} 0`
-      );
-
-      let duration = 40000;
-
-      if (tier === 1) {
-
-        creature.innerHTML = `
-          <a-gltf-model
-            src="school_of_herring.glb"
-            scale="5 5 5"
-            animation-mixer="clip: *; timeScale: 1">
-          </a-gltf-model>
-        `;
-
-        duration = 90000;
-
-      } else if (tier === 2) {
-
-        creature.innerHTML = `
-          <a-gltf-model
-            src="ray.glb"
-            scale="0.3 0.3 0.3"
-            animation-mixer="clip: *; timeScale: 1">
-          </a-gltf-model>
-        `;
-
-        duration = 30000;
-
-      } else if (tier === 3) {
-
-        creature.innerHTML = `
-          <a-gltf-model
-            src="dolphin.glb"
-            scale="45 45 45"
-            animation-mixer="clip: *; timeScale: 1">
-          </a-gltf-model>
-        `;
-
-        duration = 20000;
-
-      } else if (tier === 4) {
-
-        creature.innerHTML = `
-          <a-gltf-model
-            src="whale.glb"
-            scale="3 3 3"
-            rotation="0 180 0"
-            animation-mixer="clip: *; timeScale: 0.8">
-          </a-gltf-model>
-        `;
-
-        duration = 45000;
-
-      } else {
-
-        creature.innerHTML = `
-          <a-gltf-model
-            src="blue_whale.glb"
-            scale="5 5 5"
-            animation-mixer="clip: *; timeScale: 1">
-          </a-gltf-model>
-        `;
-
-        duration = 60000;
-      }
-
-      creature.setAttribute(
-        'animation',
-        `property: position; to: ${targetX} ${spawnY} ${targetZ}; dur: ${duration}; easing: linear`
-      );
-
-      container.appendChild(creature);
-
-      setTimeout(() => {
-
-        if (creature.parentNode) {
-          creature.parentNode.removeChild(creature);
-        }
-
-      }, duration + 1000);
-    }
-
-    // =====================================================
-    // MAIN LOOP
-    // =====================================================
-
-    let lastTimestamp = 0;
-    let spawnTimer = 0;
-
-    function animateDescent(timestamp) {
-
-      animateWaterSurface(timestamp);
-
-      animateDiverArms(
-        timestamp * 0.001
-      );
-
-      if (!lastTimestamp) {
-        lastTimestamp = timestamp;
-      }
-
-      const deltaTime =
-        Math.min(
-          (timestamp - lastTimestamp) / 1000,
-          0.1
-        );
-
-      lastTimestamp = timestamp;
-
-      const spawnInterval = Math.max(
-        4000,
-        8000 -
-          (currentDepth / maxDepth) * 4000
-      );
-
-      if (
-        isDiving &&
-        currentDepth >= 3 &&
-        timestamp - spawnTimer >
-          spawnInterval
-      ) {
-
-        spawnCreepyCreature();
-        spawnTimer = timestamp;
-      }
-
-      if (
-        isDiving &&
-        currentDepth < maxDepth
-      ) {
-
-        currentDepth +=
-          descentSpeed * deltaTime;
-
-        currentDepth = Math.min(
-          currentDepth,
-          maxDepth
-        );
-
-        cameraRig.setAttribute(
-          'position',
-          `0 ${7 - currentDepth} 0`
-        );
-
-        const waterSurface =
-          document.getElementById(
-            'water-surface'
-          );
-
-        if (waterSurface) {
-
-          const fade = Math.min(
-            Math.max(
-              (currentDepth - 2.5) /
-              (10 - 2.5),
-              0
-            ),
-            1
-          );
-
-          waterSurface.setAttribute(
-            'visible',
-            fade < 1
-          );
-
-          waterSurface.setAttribute(
-            'material',
-            'opacity',
-            0.72 * (1 - fade)
-          );
-        }
-
-        depthDisplay.textContent =
-          currentDepth.toFixed(1);
-
-        updateEnvironmentStage(
-          currentDepth
-        );
-
-        updateAudioParams(
-          currentDepth
-        );
-
-        const colossal =
-          document.getElementById(
-            'colossal-entity'
-          );
-
-        if (
-          colossal &&
-          currentDepth >= 350
-        ) {
-
-          const pulse =
-            Math.sin(
-              timestamp * 0.0015
-            ) * 2;
-
-          colossal.setAttribute(
-            'position',
-            `0 ${-50 + pulse} -35`
-          );
-        }
-      }
-
-      requestAnimationFrame(
-        animateDescent
-      );
-    }
-
-    // =====================================================
-    // START
-    // =====================================================
-
-    startBtn.addEventListener(
-      'click',
-      () => {
-
-        initAudio();
-
-        if (
-          audioCtx &&
-          audioCtx.state === 'suspended'
-        ) {
-          audioCtx.resume();
-        }
-
-        isDiving = true;
-
-        cameraRig.removeAttribute(
-          'animation'
-        );
-
-        startScreen.classList.add(
-          'hidden'
-        );
-
-        statusDisplay.textContent =
-          'Sinking Uncontrollably...';
-      }
+    const spawnInterval = Math.max(
+      4000,
+      8000 -
+      currentDepth / SETTINGS.maxDepth * 4000
     );
 
-    // =====================================================
-    // SOUND
-    // =====================================================
+    if (
+      currentDepth >= 3 &&
+      timestamp - creatureSpawnTimer >
+        spawnInterval
+    ) {
 
-    soundToggleBtn.addEventListener(
-      'click',
-      () => {
+      spawnCreature();
 
-        isMuted = !isMuted;
-
-        soundState.textContent =
-          isMuted ? 'OFF' : 'ON';
-
-        soundState.className =
-          isMuted
-            ? 'text-red-400'
-            : 'text-emerald-400';
-
-        if (
-          masterGain &&
-          audioCtx
-        ) {
-
-          masterGain.gain.setValueAtTime(
-            isMuted ? 0 : 1,
-            audioCtx.currentTime
-          );
-        }
-      }
-    );
-
-    // =====================================================
-    // RESTART
-    // =====================================================
-
-    recenterBtn.addEventListener(
-      'click',
-      () => {
-
-        isDiving = false;
-        currentDepth = 0;
-
-        spawnTimer =
-          performance.now();
-
-        cameraRig.setAttribute(
-          'position',
-          '0 7 0'
-        );
-
-        const waterSurface =
-          document.getElementById(
-            'water-surface'
-          );
-
-        waterSurface.setAttribute(
-          'visible',
-          true
-        );
-
-        waterSurface.setAttribute(
-          'material',
-          'opacity',
-          0.72
-        );
-
-        depthDisplay.textContent =
-          '0.0';
-
-        startScreen.classList.remove(
-          'hidden'
-        );
-
-        statusDisplay.textContent =
-          'Surface Ready';
-
-        updateEnvironmentStage(0);
-
-        if (audioCtx) {
-
-          if (ambientGain) {
-
-            ambientGain.gain.setTargetAtTime(
-              0.25,
-              audioCtx.currentTime,
-              0.1
-            );
-          }
-
-          if (bassGain) {
-
-            bassGain.gain.setTargetAtTime(
-              0.01,
-              audioCtx.currentTime,
-              0.1
-            );
-          }
-        }
-
-        const creatures =
-          document.getElementById(
-            'dynamic-creatures'
-          );
-
-        if (creatures) {
-          creatures.innerHTML = '';
-        }
-
-        setupProceduralElements();
-      }
-    );
-
-    // =====================================================
-    // INITIALIZE
-    // =====================================================
-
-    function initApp() {
-
-      updateEnvironmentStage(0);
-
-      if (sceneEl.hasLoaded) {
-
-        setupProceduralElements();
-
-        requestAnimationFrame(
-          animateDescent
-        );
-
-      } else {
-
-        sceneEl.addEventListener(
-          'loaded',
-          () => {
-
-            setupProceduralElements();
-
-            requestAnimationFrame(
-              animateDescent
-            );
-          },
-          { once: true }
-        );
-      }
+      creatureSpawnTimer = timestamp;
     }
+  }
 
-    initApp();
+  // Ensure camera and moving creatures have
+  // updated world transforms for spatial audio.
+  sceneEl.object3D.updateMatrixWorld(true);
 
-  </script>
+  updateAudioListener();
 
+  updateCreatureAudio(timestamp);
+
+  requestAnimationFrame(animateDescent);
+}
+
+// ======================================================
+// START
+// ======================================================
+
+startBtn.addEventListener('click', async () => {
+
+  initAudio();
+
+  if (
+    audioCtx &&
+    audioCtx.state === 'suspended'
+  ) {
+    await audioCtx.resume();
+  }
+
+  isDiving = true;
+
+  startScreen.classList.add('hidden');
+
+  statusDisplay.textContent =
+    'SINKING UNCONTROLLABLY...';
+
+  creatureSpawnTimer =
+    performance.now();
+});
+
+// ======================================================
+// AUDIO TOGGLE
+// ======================================================
+
+soundToggleBtn.addEventListener('click', () => {
+
+  isMuted = !isMuted;
+
+  soundState.textContent =
+    isMuted ? 'OFF' : 'ON';
+
+  soundState.className =
+    isMuted
+      ? 'text-red-400'
+      : 'text-emerald-400';
+
+  if (audioCtx && masterGain) {
+
+    masterGain.gain.setTargetAtTime(
+      isMuted ? 0 : SETTINGS.masterVolume,
+      audioCtx.currentTime,
+      0.1
+    );
+  }
+});
+
+// ======================================================
+// RESTART
+// ======================================================
+
+recenterBtn.addEventListener('click', () => {
+
+  isDiving = false;
+  currentDepth = 0;
+
+  cameraRig.object3D.position.set(0, 7, 0);
+
+  depthDisplay.textContent = '0.0';
+
+  statusDisplay.textContent =
+    'SURFACE READY';
+
+  startScreen.classList.remove('hidden');
+
+  const surface =
+    document.getElementById('water-surface');
+
+  surface.setAttribute('visible', true);
+
+  surface.setAttribute(
+    'material',
+    'opacity',
+    0.72
+  );
+
+  document.getElementById(
+    'dynamic-creatures'
+  ).innerHTML = '';
+
+  for (const creature of activeCreatures) {
+    creature.audio.stop();
+  }
+
+  activeCreatures.length = 0;
+
+  updateEnvironmentStage(0);
+
+  updateAudioParams();
+});
+
+// ======================================================
+// INITIALIZATION
+// ======================================================
+
+function initApp() {
+
+  updateEnvironmentStage(0);
+
+  if (sceneEl.hasLoaded) {
+
+    setupMarineSnow();
+
+    requestAnimationFrame(animateDescent);
+
+  } else {
+
+    sceneEl.addEventListener(
+      'loaded',
+      () => {
+
+        setupMarineSnow();
+
+        requestAnimationFrame(animateDescent);
+
+      },
+      { once: true }
+    );
+  }
+}
+
+initApp();
+
+</script>
 </body>
 </html>
