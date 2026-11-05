@@ -47,33 +47,6 @@ a-scene {
   50% { box-shadow: 0 0 35px #00bbee44; }
 }
 
-#depth-announcement {
-  position: fixed;
-  z-index: 60;
-  top: 36%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  text-align: center;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 1.3s ease;
-  width: min(85vw,700px);
-  text-shadow: 0 3px 20px #000;
-}
-
-#announcement-title {
-  color: #b8efff;
-  font-size: clamp(18px,3vw,35px);
-  letter-spacing: 4px;
-}
-
-#announcement-subtitle {
-  color: #9bb5c4;
-  font-size: 13px;
-  letter-spacing: 2px;
-  margin-top: 12px;
-}
-
 #attack-flash {
   position: fixed;
   inset: 0;
@@ -202,11 +175,6 @@ a-scene {
     </div>
   </div>
 
-</div>
-
-<div id="depth-announcement">
-  <div id="announcement-title"></div>
-  <div id="announcement-subtitle"></div>
 </div>
 
 <div id="attack-flash"></div>
@@ -339,10 +307,6 @@ a-scene {
 <script>
 'use strict';
 
-// =====================================================
-// CONFIGURATION
-// =====================================================
-
 const THREE = AFRAME.THREE;
 
 const SETTINGS = {
@@ -364,11 +328,11 @@ const SETTINGS = {
 
   seagullVolume: 0.75,
 
-  // Increased heartbeat/breathing.
+  // Breathing considerably louder.
   heartbeatBase: 0.9,
   heartbeatDeep: 1.8,
-  breathingBase: 0.5,
-  breathingDeep: 1.25
+  breathingBase: 1.3,
+  breathingDeep: 2.2
 };
 
 const AUDIO_FILES = {
@@ -416,13 +380,9 @@ let nextCreatureTime = 0;
 let lastHandBubbleTime = 0;
 
 let submerged = false;
-let announcementTimeout = null;
 
 const milestones = new Set();
 const creatures = [];
-
-let whaleRevealUntil = 0;
-let whaleRevealStarted = 0;
 
 const armState = {
   ready:false,
@@ -579,7 +539,6 @@ function updateAudio() {
     .45
   );
 
-  // Louder breathing, increasingly frantic.
   fade(
     'breathing',
     underwater*(
@@ -589,7 +548,6 @@ function updateAudio() {
     .3
   );
 
-  // Stronger heartbeat as pressure increases.
   fade(
     'heartbeat',
     underwater*(
@@ -599,7 +557,6 @@ function updateAudio() {
     .3
   );
 
-  // Heartbeat speeds up a little at depth.
   if(audioLoops.heartbeat) {
     audioLoops.heartbeat.playbackRate.setTargetAtTime(
       1+pressure*.35,
@@ -661,10 +618,6 @@ function playWaterRush(duration=1.6,volume=.4) {
   source.stop(now+duration+.05);
 }
 
-// =====================================================
-// MANTA RAY UNDERWATER WHOOSH
-// =====================================================
-
 function playMantaWhoosh(creature) {
   if(!audioCtx) return;
 
@@ -719,10 +672,6 @@ function playMantaWhoosh(creature) {
   source.start();
   source.stop(now+2.9);
 }
-
-// =====================================================
-// ANIMAL AUDIO
-// =====================================================
 
 function playAnimalSound(type,creature) {
   if(!audioCtx||!audioBuffers[type]) return;
@@ -1144,89 +1093,50 @@ function createMarineSnow() {
 }
 
 // =====================================================
-// ENVIRONMENT AND WHALE REVEAL
+// CONTINUOUS DARKENING — NO SUDDEN WHALE BRIGHTENING
 // =====================================================
 
-function updateEnvironment(now) {
+function updateEnvironment() {
   const d=depth;
 
-  let color;
-  let fog;
-  let sunPower;
-  let ambientPower;
-  let zone;
+  // Smoothly interpolate across the full dive.
+  // The ocean reaches near-black only at 200m.
 
-  if(d<40) {
-    const t=d/40;
+  const stops=[
+    {d:0,   color:'#88ccff',fog:.005,sun:1.8,ambient:.9},
+    {d:40,  color:'#075579',fog:.011,sun:.99,ambient:.62},
+    {d:100, color:'#001a2d',fog:.019,sun:.12,ambient:.34},
+    {d:150, color:'#000e18',fog:.023,sun:.025,ambient:.23},
+    {d:180, color:'#00070d',fog:.029,sun:0,ambient:.12},
+    {d:200, color:'#000000',fog:.047,sun:0,ambient:.015}
+  ];
 
-    color=new THREE.Color('#88ccff')
-      .lerp(new THREE.Color('#075579'),t);
+  let a=stops[0];
+  let b=stops[stops.length-1];
 
-    fog=.005+t*.006;
-    sunPower=1.8*(1-t*.45);
-    ambientPower=.9-t*.28;
-
-    zone='Phase 1: Epipelagic (Sunlight Zone)';
-
-  } else if(d<100) {
-    const t=(d-40)/60;
-
-    color=new THREE.Color('#075579')
-      .lerp(new THREE.Color('#001a2d'),t);
-
-    fog=.011+t*.009;
-    sunPower=.99*(1-t*.9);
-    ambientPower=.62-t*.35;
-
-    zone='Phase 2: Mesopelagic (Twilight Zone)';
-
-  } else if(d<150) {
-    const t=(d-100)/50;
-
-    color=new THREE.Color('#001a2d')
-      .lerp(new THREE.Color('#000408'),t);
-
-    fog=.020+t*.013;
-    sunPower=.099*(1-t);
-    ambientPower=.27-t*.20;
-
-    zone='Phase 3: Bathypelagic (Midnight Zone)';
-
-  } else {
-    const t=clamp((d-150)/40,0,1);
-
-    color=new THREE.Color('#000408')
-      .lerp(new THREE.Color('#000000'),t);
-
-    fog=.033+t*.025;
-    sunPower=0;
-    ambientPower=.07-t*.055;
-
-    zone='Phase 4: The Abyss (The Deep Void)';
+  for(let i=0;i<stops.length-1;i++){
+    if(d>=stops[i].d&&d<=stops[i+1].d){
+      a=stops[i];
+      b=stops[i+1];
+      break;
+    }
   }
 
-  // Brief blue illumination to reveal the humpback.
-  // It fades in and out rather than snapping on.
-
-  let reveal=0;
-
-  if(now<whaleRevealUntil) {
-    const elapsed=(now-whaleRevealStarted)/1000;
-    const total=(whaleRevealUntil-whaleRevealStarted)/1000;
-
-    reveal=Math.min(
-      clamp(elapsed/2,0,1),
-      clamp((total-elapsed)/3,0,1)
-    );
-  }
-
-  ambientPower+=reveal*.75;
-  fog=Math.max(.008,fog-reveal*.022);
-
-  color.lerp(
-    new THREE.Color('#0a4160'),
-    reveal*.65
+  const t=clamp(
+    (d-a.d)/(b.d-a.d||1),
+    0,1
   );
+
+  // Smoothstep removes visible changes at zone boundaries.
+  const smooth=t*t*(3-2*t);
+
+  const color=new THREE.Color(a.color)
+    .lerp(new THREE.Color(b.color),smooth);
+
+  const fog=a.fog+(b.fog-a.fog)*smooth;
+  const sunPower=a.sun+(b.sun-a.sun)*smooth;
+  const ambientPower=
+    a.ambient+(b.ambient-a.ambient)*smooth;
 
   const hex='#'+color.getHexString();
 
@@ -1243,7 +1153,7 @@ function updateEnvironment(now) {
   flashlight.setAttribute(
     'light',
     'intensity',
-    d>110?clamp((d-110)/55,0,.65):0
+    d>110?clamp((d-110)/90,0,.48):0
   );
 
   const sunOpacity=clamp(1-d/75,0,1);
@@ -1253,38 +1163,32 @@ function updateEnvironment(now) {
 
   $('water-surface').setAttribute('visible',d<14);
 
+  let zone;
+
+  if(d<40) {
+    zone='Phase 1: Epipelagic (Sunlight Zone)';
+  } else if(d<100) {
+    zone='Phase 2: Mesopelagic (Twilight Zone)';
+  } else if(d<150) {
+    zone='Phase 3: Bathypelagic (Midnight Zone)';
+  } else {
+    zone='Phase 4: The Abyss (The Deep Void)';
+  }
+
   zoneDisplay.textContent=zone;
 }
 
 // =====================================================
-// ANNOUNCEMENTS
-// =====================================================
-
-function announce(title,subtitle) {
-  $('announcement-title').textContent=title;
-  $('announcement-subtitle').textContent=subtitle;
-
-  const element=$('depth-announcement');
-  element.style.opacity='1';
-
-  clearTimeout(announcementTimeout);
-
-  announcementTimeout=setTimeout(()=>{
-    element.style.opacity='0';
-  },3500);
-}
-
-// =====================================================
-// CREATURES
+// ANIMALS
 // =====================================================
 
 const ANIMALS={
   fish:{
     file:'school_of_herring.glb',
     scale:5,
-    duration:19000,
-    clearance:7,
-    size:5
+    duration:17000,
+    clearance:4,
+    size:3
   },
 
   ray:{
@@ -1309,7 +1213,7 @@ const ANIMALS={
     file:'whale.glb',
     scale:3,
     duration:35000,
-    clearance:30,
+    clearance:24,
     size:20,
     sound:'whale',
     flip:true
@@ -1349,7 +1253,7 @@ function selectAnimal() {
 }
 
 // =====================================================
-// SPAWN ANIMALS BEHIND US UNTIL IT IS DARK
+// CREATURE SPAWNING
 // =====================================================
 
 function spawnCreature(forcedType=null) {
@@ -1394,34 +1298,43 @@ function spawnCreature(forcedType=null) {
   const side=vec(-forward.z,0,forward.x);
   const sideSign=Math.random()<.5?-1:1;
 
-  const safeDistance=config.clearance+config.size;
+  // Fish stay closer so they can actually be seen.
+  const safeDistance=
+    type==='fish'
+      ?random(4,7)
+      :config.clearance+config.size;
 
   const start=cameraWorld.clone();
   const end=cameraWorld.clone();
 
   if(depth<140) {
-    // Behind the diver, then swim across the periphery.
-    // This avoids the conspicuous front-facing fade-in.
+    // Approach from behind, then pass to one side.
+    // Fish pass relatively close to the player.
 
-    start.addScaledVector(forward,-random(35,55));
+    start.addScaledVector(
+      forward,
+      type==='fish'?-random(12,20):-random(35,55)
+    );
+
     start.addScaledVector(side,sideSign*safeDistance);
 
-    end.addScaledVector(forward,random(30,50));
+    end.addScaledVector(
+      forward,
+      type==='fish'?random(12,22):random(30,50)
+    );
+
     end.addScaledVector(side,sideSign*safeDistance);
 
   } else {
-    // At depth, darkness hides distant arrival.
-    // Keep creatures off the centerline.
-
-    start.addScaledVector(forward,random(38,60));
+    start.addScaledVector(forward,random(30,45));
     start.addScaledVector(side,sideSign*safeDistance);
 
     end.addScaledVector(forward,-random(30,50));
     end.addScaledVector(side,sideSign*safeDistance);
   }
 
-  start.y+=random(-5,5);
-  end.y=start.y+random(-4,4);
+  start.y+=type==='fish'?random(-2,2):random(-5,5);
+  end.y=start.y+random(-3,3);
 
   entity.object3D.position.copy(start);
 
@@ -1438,6 +1351,22 @@ function spawnCreature(forcedType=null) {
     'rotation',
     `0 ${heading+(config.flip?180:0)} 0`
   );
+
+  // Local light follows the whale only.
+  // It does not change the rest of the ocean.
+
+  if(type==='whale'||type==='blueWhale') {
+    const whaleLight=document.createElement('a-light');
+
+    whaleLight.setAttribute('type','point');
+    whaleLight.setAttribute('color','#2b7898');
+    whaleLight.setAttribute('intensity',.7);
+    whaleLight.setAttribute('distance',45);
+    whaleLight.setAttribute('decay',2);
+    whaleLight.setAttribute('position','0 5 4');
+
+    entity.appendChild(whaleLight);
+  }
 
   const creature={
     type,
@@ -1511,10 +1440,7 @@ function updateCreatures(now) {
       t
     );
 
-    // Behind-us creatures fade in very quickly,
-    // while deep creatures emerge more gradually.
-
-    const fadeDuration=depth<140?.05:.20;
+    const fadeDuration=depth<140?.04:.18;
 
     const fadeIn=clamp(t/fadeDuration,0,1);
     const fadeOut=clamp((1-t)/.14,0,1);
@@ -1554,67 +1480,37 @@ function updateCreatures(now) {
 }
 
 // =====================================================
-// MILESTONES
+// MILESTONES — NO POP-UP TEXT
 // =====================================================
 
-function updateMilestones(now) {
+function updateMilestones() {
 
   if(depth>=SETTINGS.submergeDepth&&!milestones.has('fish')) {
     milestones.add('fish');
 
-    announce(
-      'THE SUNLIGHT ZONE',
-      'Life moves beneath the surface.'
-    );
-
+    // More fish immediately on submersion.
+    spawnCreature('fish');
     spawnCreature('fish');
     spawnCreature('fish');
   }
 
   if(depth>=40&&!milestones.has('ray')) {
     milestones.add('ray');
-
-    announce(
-      '40 METERS · THE DESCENT',
-      'A shadow glides through the blue.'
-    );
-
     spawnCreature('ray');
   }
 
   if(depth>=100&&!milestones.has('dolphin')) {
     milestones.add('dolphin');
-
-    announce(
-      '100 METERS · THE TWILIGHT',
-      'Something is calling in the distance.'
-    );
-
     spawnCreature('dolphin');
   }
 
   if(depth>=150&&!milestones.has('whale')) {
     milestones.add('whale');
-
-    announce(
-      '150 METERS · THE DEEP',
-      'An enormous presence passes through the darkness.'
-    );
-
-    whaleRevealStarted=now;
-    whaleRevealUntil=now+18000;
-
     spawnCreature('whale');
   }
 
   if(depth>=180&&!milestones.has('void')) {
     milestones.add('void');
-
-    announce(
-      '180 METERS · THE VOID',
-      'There is no more sunlight.'
-    );
-
     spawnCreature('blueWhale');
   }
 }
@@ -1630,8 +1526,6 @@ function attack() {
   diving=false;
 
   statusDisplay.textContent='SIGNAL LOST';
-
-  $('depth-announcement').style.opacity='0';
 
   const monster=$('monster');
 
@@ -1695,9 +1589,6 @@ function resetDive() {
   nextCreatureTime=0;
   nextBreath=0;
 
-  whaleRevealUntil=0;
-  whaleRevealStarted=0;
-
   milestones.clear();
 
   for(const creature of creatures) {
@@ -1721,9 +1612,8 @@ function resetDive() {
   $('attack-flash').style.background='#d4f5ff';
 
   $('monster').setAttribute('visible',false);
-  $('depth-announcement').style.opacity='0';
 
-  updateEnvironment(performance.now());
+  updateEnvironment();
   updateAudio();
 
   if(masterGain&&audioCtx) {
@@ -1781,9 +1671,9 @@ function animate(now) {
       playWaterRush(2,.5);
     }
 
-    updateEnvironment(now);
+    updateEnvironment();
     updateAudio();
-    updateMilestones(now);
+    updateMilestones();
 
     if(submerged&&now>=nextBreath) {
       spawnBreathBubble();
@@ -1798,7 +1688,12 @@ function animate(now) {
     if(submerged&&now>=nextCreatureTime) {
       spawnCreature();
 
-      nextCreatureTime=now+random(6000,10000);
+      // Fish are more frequent near the surface.
+      nextCreatureTime=now+(
+        depth<40
+          ?random(3000,5000)
+          :random(6000,10000)
+      );
     }
 
     if(depth>=SETTINGS.maxDepth) {
@@ -1835,7 +1730,7 @@ $('start-btn').addEventListener('click',async()=>{
   diving=true;
   ended=false;
 
-  nextCreatureTime=performance.now()+5000;
+  nextCreatureTime=performance.now()+3500;
   nextBreath=performance.now()+4000;
 });
 
@@ -1870,7 +1765,7 @@ if(sceneEl.hasLoaded) {
   );
 }
 
-updateEnvironment(performance.now());
+updateEnvironment();
 requestAnimationFrame(animate);
 
 </script>
